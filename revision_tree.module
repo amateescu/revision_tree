@@ -1,0 +1,14 @@
+<?php
+
+use Drupal\Core\Database\Query\AlterableInterface;
+use Drupal\Core\Database\Query\SelectInterface;
+
+/**
+ * Implements hook_query_TAG_alter().
+ */
+function revision_tree_query_revision_negotiation_query_alter(AlterableInterface $query) {
+  if ($query instanceof SelectInterface && $expression = $query->getMetaData('revision_negotiation_expression')) {
+    $query->addExpression($expression, 'revision_negotiation_match');
+    $query->orderBy('revision_negotiation_match', 'DESC');
+  }
+}
