@@ -32,31 +32,14 @@ class EntityRepository extends CoreEntityRepository {
 
     $entityType = $entity->getEntityType();
 
+    /** @var \Drupal\revision_tree\EntityQuery\Query $query */
     $query = $this->entityTypeManager
       ->getStorage($entity->getEntityTypeId())
       ->getQuery();
 
-    $query->condition($entityType->getKey('id'), $entity->id());
-
-    // TODO: Replace with "allActiveRevisions".
     $query->allRevisions();
-
-    $allContextDefinitions = $this
-      ->revisionNegotiationContextDiscovery
-      ->getEntityContextDefinitions($entity->getEntityType());
-
-    $expressions = ['0'];
-    foreach ($contexts as $context => $value) {
-      if (array_key_exists($context, $allContextDefinitions)) {
-        $definition = $allContextDefinitions[$context];
-        // If the weight is negative, we are looking for a non-match.
-        $operator = $definition['weight'] > 0 ? '=' : '!=';
-        $expressions[] = "IF(base_table.{$definition['field']} {$operator} '{$value}', 1, 0) * {$definition['weight']}";
-      }
-    }
-
-    $query->addTag('revision_negotiation_query');
-    $query->addMetaData('revision_negotiation_expression', implode(' + ', $expressions));
+    $query->condition($entityType->getKey('id'), $entity->id());
+    $query->orderByContextMatching($contexts);
 
     $result = $query->execute();
     return $this->loadRevision($entity, key($result));
