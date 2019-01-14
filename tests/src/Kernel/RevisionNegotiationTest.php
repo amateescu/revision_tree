@@ -2,18 +2,9 @@
 
 namespace Drupal\Tests\revision_tree\Kernel;
 
-use Drupal\Core\DependencyInjection\ContainerBuilder;
-use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Field\BaseFieldDefinition;
-use Drupal\Core\Language\ContextProvider\CurrentLanguageContext;
-use Drupal\Core\Plugin\Context\Context;
-use Drupal\Core\Plugin\Context\ContextDefinition;
-use Drupal\Core\Plugin\Context\ContextDefinitionInterface;
-use Drupal\Core\Plugin\Context\ContextProviderInterface;
 use Drupal\KernelTests\Core\Entity\EntityKernelTestBase;
-use Drupal\revision_tree\Plugin\Context\RevisionNegotiationContextInterface;
 use Drupal\user\Entity\User;
-use Symfony\Component\DependencyInjection\Definition;
 
 class RevisionNegotiationTest extends EntityKernelTestBase {
 
@@ -23,79 +14,6 @@ class RevisionNegotiationTest extends EntityKernelTestBase {
     'user',
     'system',
   ];
-
-  /**
-   * Construct a fake context provider to test context collection.
-   */
-  public static function contextProviderFactory() {
-    // Create 4 different revision negotiation contexts relating to 4
-    // entity fields.
-    $weights = [
-      'a' => 1,
-      'b' => 1,
-      'c' => 2,
-      'd' => -10,
-    ];
-
-    $contexts = ['foo', new Context(new ContextDefinition())];
-
-    foreach ($weights as $context => $weight) {
-      $contexts[$context] = new class (new ContextDefinition(), null, $context, $weight) extends Context implements RevisionNegotiationContextInterface {
-
-        protected $field;
-        protected $weight;
-
-        public function __construct(ContextDefinitionInterface $context_definition, ?mixed $context_value = NULL, $field = '', $weight = 0) {
-          parent::__construct($context_definition, $context_value);
-          $this->field = $field;
-          $this->weight = $weight;
-        }
-
-        public function applies(EntityTypeInterface $entityType) {
-          return $entityType->id() === 'entity_test_rev';
-        }
-
-        public function getContextField() {
-          return $this->field;
-        }
-
-        public function getWeight() {
-          return $this->weight;
-        }
-      };
-    }
-
-    $provider = new class($contexts) implements ContextProviderInterface {
-      protected $contexts;
-
-      public function __construct($contexts) {
-        $this->contexts = $contexts;
-      }
-
-      public function getRuntimeContexts(array $unqualified_context_ids) {
-        return $this->contexts;
-      }
-      public function getAvailableContexts() {
-        return $this->contexts;
-      }
-    };
-    return $provider;
-  }
-
-  /**
-   * Inject a fake context provider.
-   */
-  public function register(ContainerBuilder $container) {
-    parent::register($container);
-
-    // Inject a context provider.
-    // The definition has to be "any" context provider class, or the compiler
-    // pass will fail.
-    $contextProviderDefinition = new Definition(CurrentLanguageContext::class);
-    $contextProviderDefinition->setFactory('Drupal\Tests\revision_tree\Kernel\RevisionNegotiationTest::contextProviderFactory');
-    $contextProviderDefinition->addTag('context_provider');
-    $this->container->setDefinition('test_context_provider', $contextProviderDefinition);
-  }
 
 
   protected function setUp() {
@@ -121,7 +39,6 @@ class RevisionNegotiationTest extends EntityKernelTestBase {
       ->setRevisionable(TRUE)
       ->setProvider('entity_test_rev');
 
-
     $this->state->set('entity_test_rev.additional_base_field_definitions', [
       'a' => $a,
       'b' => $b,
@@ -132,6 +49,16 @@ class RevisionNegotiationTest extends EntityKernelTestBase {
     $this->installEntitySchema('entity_test');
     $this->installEntitySchema('entity_test_rev');
     $this->installEntitySchema('user');
+
+    $entity_type = clone \Drupal::entityTypeManager()->getDefinition('entity_test_rev');
+    $entity_type->set('entity_contexts', [
+      'a' => 1,
+      'b' => 1,
+      'c' => 2,
+      'd' => -10,
+    ]);
+    \Drupal::state()->set('entity_test_rev.entity_type', $entity_type);
+    \Drupal::entityDefinitionUpdateManager()->applyUpdates();
 
     // Setup an anonymous user for our tests.
     $anonymous = User::create(array(
@@ -144,34 +71,6 @@ class RevisionNegotiationTest extends EntityKernelTestBase {
     $this->installConfig(['system']);
 
     $this->container->get('entity_type.bundle.info')->clearCachedBundles();
-  }
-
-  public function testRevisionNegotiationDiscovery() {
-
-    $discovery =$this->container->get('revision_tree.revision_negotiation_discovery');
-
-    $simple = $this->entityManager->getDefinition('entity_test');
-    $this->assertEquals([], $discovery->getEntityContextDefinitions($simple));
-
-    $rev = $this->entityManager->getDefinition('entity_test_rev');
-    $this->assertEquals([
-      'a' => [
-        'field' => 'a',
-        'weight' => 1,
-      ],
-      'b' => [
-        'field' => 'b',
-        'weight' => 1,
-      ],
-      'c' => [
-        'field' => 'c',
-        'weight' => 2,
-      ],
-      'd' => [
-        'field' => 'd',
-        'weight' => -10,
-      ],
-    ], $discovery->getEntityContextDefinitions($rev));
   }
 
   /**

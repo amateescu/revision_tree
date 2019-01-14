@@ -1,16 +1,9 @@
 services:
-  revision_tree.revision_negotiation_discovery:
-    class: Drupal\revision_tree\Context\RevisionNegotiationContextDiscovery
-    arguments:
-      - '@cache.discovery'
-    tags:
-      - { name: service_collector, tag: context_provider, call: addContextProvider }
-
 
   revision_tree.entity.query.sql:
     decorates: entity.query.sql
     class: Drupal\revision_tree\EntityQuery\QueryFactory
-    arguments: ['@database', '@revision_tree.revision_negotiation_discovery']
+    arguments: ['@database']
     public: false
     decoration_priority: 50
     tags:
