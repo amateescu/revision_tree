@@ -56,13 +56,26 @@ class Query extends BaseQuery {
           $operator = $weight > 0 ? '=' : '!=';
           $sqlField = $this->getSqlField($context, $lancode);
           $field = $context;
-          $expressions[] = [
-            "IF({$sqlField} {$operator} :{$field}__value, 1, 0) * :{$field}__weight",
-            [
-              ":{$field}__value" => $value,
-              ":{$field}__weight" => $weight,
-            ],
-          ];
+          if (is_array($value)) {
+            foreach ($value as $index => $val) {
+              $expressions[] = [
+                "IF({$sqlField} {$operator} :{$field}__value_{$index}, 1, 0) * :{$field}__weight_{$index}",
+                [
+                  ":{$field}__value_{$index}" => $val,
+                  ":{$field}__weight_{$index}" => $weight + (0.01 * $weight/abs($weight)),
+                ],
+              ];
+            }
+          }
+          else {
+            $expressions[] = [
+              "IF({$sqlField} {$operator} :{$field}__value, 1, 0) * :{$field}__weight",
+              [
+                ":{$field}__value" => $value,
+                ":{$field}__weight" => $weight,
+              ],
+            ];
+          }
         }
       }
       $this->contextSortExpressions[$index] = [

@@ -156,4 +156,28 @@ class RevisionNegotiationTest extends EntityKernelTestBase {
 
     $this->assertEquals($y->getLoadedRevisionId(), $repository->getActive($x, ['a' => 'x', 'c' => 'y', 'd' => 'z'])->getLoadedRevisionId());
   }
+
+  /**
+   * When passing an array as the context value, this will
+   */
+  public function testFallbackMatching() {
+    /** @var \Drupal\revision_tree\Entity\EntityRepository $repository */
+    $repository = $this->container->get('entity.repository');
+    /** @var \Drupal\Core\Entity\ContentEntityStorageInterface $storage */
+    $storage = $this->entityManager->getStorage('entity_test_rev');
+
+    /** @var \Drupal\Core\Entity\ContentEntityInterface $a */
+    $x = $storage->create();
+    $x->a = 'foo';
+    $x->c = 'z';
+    $x->save();
+
+    $y = $storage->createRevision($x);
+    $y->a = 'x';
+    $y->c = 'foo';
+    $y->save();
+
+    $this->assertEquals($x->getLoadedRevisionId(), $repository->getActive($x, ['a' => 'x', 'c' => ['y', 'z'] ])->getLoadedRevisionId());
+
+  }
 }
