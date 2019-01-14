@@ -1,0 +1,31 @@
+<?php
+
+/**
+ * @file
+ * Install, update, and uninstall functions for the revision_tree module.
+ */
+
+/**
+ * Implements hook_module_preinstall().
+ */
+function revision_tree_module_preinstall($module) {
+  if ($module !== 'revision_tree') {
+    return;
+  }
+
+  // Clear plugin manager caches so the new 'revision_tree' field type is
+  // available below.
+  \Drupal::getContainer()->get('plugin.cache_clearer')->clearCachedDefinitions();
+
+  $entity_definition_update_manager = \Drupal::entityDefinitionUpdateManager();
+  foreach ($entity_definition_update_manager->getEntityTypes() as $entity_type) {
+    if ($entity_type->isRevisionable()) {
+      $revision_metadata_keys = $entity_type->get('revision_metadata_keys');
+      if (!isset($revision_metadata_keys['revision_parent'])) {
+        $revision_metadata_keys['revision_parent'] = 'revision_parent';
+        $entity_type->set('revision_metadata_keys', $revision_metadata_keys);
+        $entity_definition_update_manager->updateEntityType($entity_type);
+      }
+    }
+  }
+}

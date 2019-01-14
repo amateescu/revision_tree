@@ -1,0 +1,51 @@
+<?php
+
+/**
+ * @file
+ * Provides the revision tree API.
+ */
+
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\EntityTypeInterface;
+use Drupal\Core\Field\BaseFieldDefinition;
+
+/**
+ * Implements hook_entity_type_build().
+ */
+function revision_tree_entity_type_build(array &$entity_types) {
+  /** @var $entity_types \Drupal\Core\Entity\EntityTypeInterface[] */
+  foreach ($entity_types as $entity_type) {
+    if ($entity_type->isRevisionable()) {
+      // Add the required revision metadata key.
+      $revision_metadata_keys = $entity_type->get('revision_metadata_keys');
+      $revision_metadata_keys['revision_parent'] = 'revision_parent';
+      $entity_type->set('revision_metadata_keys', $revision_metadata_keys);
+    }
+  }
+}
+
+/**
+ * Implements hook_entity_base_field_info().
+ */
+function revision_tree_entity_base_field_info(EntityTypeInterface $entity_type) {
+  // Add the 'revision_parent' field.
+  if ($entity_type->isRevisionable()) {
+    $field_name = $entity_type->getRevisionMetadataKeys(FALSE)['revision_parent'];
+    $base_field_definitions[$field_name] = BaseFieldDefinition::create('revision_tree')
+      ->setLabel(t('Revision parent'))
+      ->setDescription(t('Indicates the parent revision ID.'))
+      ->setInternal(TRUE)
+      ->setTranslatable(FALSE)
+      ->setRevisionable(TRUE);
+
+    return $base_field_definitions;
+  }
+}
+
+/**
+ * Implements hook_entity_revision_create().
+ */
+function revision_tree_entity_revision_create(EntityInterface $new_revision, EntityInterface $entity, $keep_untranslatable_fields) {
+  // Set the parent revision by default.
+  $new_revision->revision_parent->target_id = $entity->getLoadedRevisionId();
+}
