@@ -180,4 +180,25 @@ class RevisionNegotiationTest extends EntityKernelTestBase {
     $this->assertEquals($x->getLoadedRevisionId(), $repository->getActive($x, ['a' => 'x', 'c' => ['y', 'z'] ])->getLoadedRevisionId());
 
   }
+
+  public function testActiveRevisionsQuery() {
+    /** @var \Drupal\Core\Entity\ContentEntityStorageInterface $storage */
+    $storage = $this->entityManager->getStorage('entity_test_rev');
+
+    /** @var \Drupal\Core\Entity\ContentEntityInterface $a */
+    $x = $storage->create();
+    $x->a = 'x';
+    $x->save();
+
+    $y = $storage->createRevision($x);
+    $y->a = 'y';
+    $y->save();
+
+
+    /** @var \Drupal\revision_tree\EntityQuery\Query $query */
+    $query = $storage->getQuery();
+    $query->activeRevisions(['a' => 'y']);
+    $result = $query->execute();
+    $this->assertEquals([2  => '1'], $result);
+  }
 }

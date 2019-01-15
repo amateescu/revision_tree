@@ -4,6 +4,7 @@ namespace Drupal\revision_tree\Entity;
 
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityRepository as CoreEntityRepository;
+use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Language\LanguageManagerInterface;
 
@@ -20,24 +21,26 @@ class EntityRepository extends CoreEntityRepository {
   }
 
   public function getActive(EntityInterface $entity, array $contexts) {
-    // If an entity is not revisionable, there is only one active revision.
-    if (!$entity->getEntityType()->isRevisionable()) {
-      return $entity;
+    if ($entity->getEntityType()->isRevisionable()) {
+      $result = $this->getActiveMultiple($entity->getEntityType(), [$entity->id()], $contexts);
+      if ($result) {
+        return reset($result);
+      }
     }
+    return $entity;
+  }
 
-    $entityType = $entity->getEntityType();
-
+  public function getActiveMultiple(EntityTypeInterface $entityType, array $entityIds, array $contexts) {
+    /** @var \Drupal\Core\Entity\ContentEntityStorageInterface $storage */
+    $storage = $this->entityTypeManager->getStorage($entityType->id());
     /** @var \Drupal\revision_tree\EntityQuery\Query $query */
-    $query = $this->entityTypeManager
-      ->getStorage($entity->getEntityTypeId())
-      ->getQuery();
+    $query = $storage->getQuery();
 
-    $query->allRevisions();
-    $query->condition($entityType->getKey('id'), $entity->id());
-    $query->orderByContextMatching($contexts);
+    $query->activeRevisions($contexts);
+    $query->condition($entityType->getKey('id'), $entityIds);
 
     $result = $query->execute();
-    return $this->loadRevision($entity, key($result));
+    return $storage->loadMultipleRevisions(array_keys($result));
   }
 
 }
