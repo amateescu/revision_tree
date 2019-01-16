@@ -6,14 +6,23 @@ use Drupal\Component\Utility\SortArray;
 use Drupal\Core\Entity\Query\Sql\Query as BaseQuery;
 
 /**
- * Alters entity queries to use a workspace revision instead of the default one.
+ * Extended entity query that allows to sort by contexts and query active revisions.
  */
 class Query extends BaseQuery {
 
   /**
+   * The list of sort context values, keyed by field name.
+   *
    * @var array
    */
-  protected $contextSort = [];
+  protected $sortContexts = [];
+
+  /**
+   * The sort direction.
+   *
+   * @var string
+   */
+  protected $sortDirection = 'DESC';
 
   /**
    * @var bool
@@ -21,38 +30,34 @@ class Query extends BaseQuery {
   protected $activeRevisions = false;
 
   /**
-   * @var string
-   */
-  protected $langcode;
-
-  /**
    * @var array
    */
   private $contextSortExpression = '0';
 
   /**
-   * Order the results by matching context fields.
+   * Retrieve the active revisions for each result entity.
    *
    * @param array $contexts
-   *   An array of context values keyed by context id.
-   * @param string $direction
-   *   Either 'ASC' or 'DESC'.
-   * @param string | null $langcode
+   *   The list of target context values keyed by field name.
+   *
    */
-  public function orderByContextMatching(array $contexts, $direction = 'DESC', $langcode = NULL) {
-    $this->contextSort = [
-      $contexts,
-      $direction,
-      $langcode,
-    ];
-  }
-
-  public function activeRevisions(array $contexts, $langcode = NULL) {
+  public function activeRevisions(array $contexts) {
     // TODO: Narrow down to leaves based on the tree field.
     $this->allRevisions();
     $this->activeRevisions = TRUE;
-    $this->langcode = $langcode;
-    $this->orderByContextMatching($contexts, 'DESC', $langcode);
+    $this->orderByContextMatching($contexts);
+  }
+
+  /**
+   * Order entity query results by context matching.
+   *
+   * @param array $contexts
+   * @param string $direction
+   * @param null $langcode
+   */
+  public function orderByContextMatching(array $contexts, $direction = 'DESC') {
+    $this->sortContexts = $contexts;
+    $this->sortDirection = $direction;
   }
 
   /**
@@ -60,19 +65,27 @@ class Query extends BaseQuery {
    */
   public function prepare() {
     parent::prepare();
-    $allContextDefinitions = $this->entityType->get('entity_contexts');
+    // Retrieve entity contexts from the entity type definition.
+    $allContextDefinitions = $this->entityType->get('contextual_fields');
 
-    list($contexts, $direction, $langcode) = $this->contextSort;
+    // The default expression just returns '0'.
     $expressions[] = [
       '0',
       [],
     ];
 
-    foreach ($contexts as $context => $value) {
+    foreach ($this->sortContexts as $context => $value) {
       if (array_key_exists($context, $allContextDefinitions)) {
         $weight = $allContextDefinitions[$context];
         // If the weight is negative, we are looking for a non-match.
         $operator = $weight > 0 ? '=' : '!=';
+
+        $langcode = NULL;
+        if (is_array($value) && array_key_exists('langcode', $value) && array_key_exists('value', $value)) {
+          $langcode = $value['langcode'];
+          $value = $value['value'];
+        }
+
         $sqlField = $this->getSqlField($context, $langcode);
         $field = $context;
         if (is_array($value)) {
@@ -98,10 +111,7 @@ class Query extends BaseQuery {
       }
     }
 
-    $this->contextSortExpression = [
-      $expressions,
-      $direction,
-    ];
+    $this->contextSortExpression = $expressions;
 
     return $this;
   }
@@ -114,37 +124,56 @@ class Query extends BaseQuery {
       return parent::finish();
     }
 
-    list($expressions, $direction) = $this->contextSortExpression;
     $alias = 'revision_context_match';
 
     $expression = implode(' + ', array_map(function($expr) {
       return $expr[0];
-    }, $expressions));
+    }, $this->contextSortExpression));
 
     $arguments = array_reduce(array_map(function ($expr) {
       return $expr[1];
-    }, $expressions), 'array_merge', []);
+    }, $this->contextSortExpression), 'array_merge', []);
 
     $this->sqlQuery->addExpression($expression, $alias, $arguments);
-    $this->sqlQuery->orderBy($alias, $direction);
 
     if ($this->activeRevisions) {
-      $idField = $this->getSqlField($this->entityType->getKey('id'), $this->langcode);
-      $revisionField = $this->getSqlField($this->entityType->getKey('revision'), $this->langcode);
+      // If this is an active revisions query, build the set of weighted
+      // revision ids.
+      $idField = $this->getSqlField($this->entityType->getKey('id'), NULL);
+      $revisionField = $this->getSqlField($this->entityType->getKey('revision'), NULL);
       $this->sqlQuery->groupBy($idField);
-      // Build an expression that contains all revision ids with their fitness values.
-      $this->sqlQuery->addExpression("CONCAT('[', GROUP_CONCAT(CONCAT('[\"', REPLACE($revisionField, '\"', '\\\"'), '\",', $expression, ']')), ']')", $this->entityType->getKey('revision'));
+
+      // Build an expression that results in a json-array with tuples of
+      // revision id's and their matching score.
+      // This array is parsed in `execute()` and the highest ranked revision id
+      // will be returned.
+      //
+      // Example:
+      // [
+      //   [ '1', 0 ],
+      //   [ '3', 1.1 ],
+      //   [ '8', 0.6 ]
+      // ]
+      $concatExpr = "CONCAT('[', GROUP_CONCAT(CONCAT('[\"', REPLACE($revisionField, '\"', '\\\"'), '\",', $expression, ']')), ']')";
+      $this->sqlQuery->addExpression($concatExpr, $this->entityType->getKey('revision'));
+    }
+    else {
+      // If this is not an active revisions query, just sort the results by
+      // matching score.
+      $this->sqlQuery->orderBy($alias, $this->sortDirection);
     }
 
     return parent::finish();
   }
 
   public function execute() {
+    // If this is not an activeRevisions query, just return the result.
     if (!$this->activeRevisions) {
       return parent::execute();
     }
+
     // If we are looking for active revisions, a weighted json array is returned.
-    // Find the highest matching revision id.
+    // Find the revision id with the highest matching score.
     $result = parent::execute();
     $processed = [];
     foreach ($result as $encoded => $id) {

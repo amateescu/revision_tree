@@ -15,7 +15,6 @@ class RevisionNegotiationTest extends EntityKernelTestBase {
     'system',
   ];
 
-
   protected function setUp() {
     parent::setUp();
 
@@ -51,7 +50,7 @@ class RevisionNegotiationTest extends EntityKernelTestBase {
     $this->installEntitySchema('user');
 
     $entity_type = clone \Drupal::entityTypeManager()->getDefinition('entity_test_rev');
-    $entity_type->set('entity_contexts', [
+    $entity_type->set('contextual_fields', [
       'a' => 1,
       'b' => 1,
       'c' => 2,
@@ -61,12 +60,10 @@ class RevisionNegotiationTest extends EntityKernelTestBase {
     \Drupal::entityDefinitionUpdateManager()->applyUpdates();
 
     // Setup an anonymous user for our tests.
-    $anonymous = User::create(array(
+    User::create(array(
       'name' => '',
       'uid' => 0,
-    ));
-    $anonymous
-      ->save();
+    ))->save();
 
     $this->installConfig(['system']);
 
