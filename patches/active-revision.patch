@@ -1,0 +1,145 @@
+diff --git a/core/lib/Drupal/Core/Entity/EntityManager.php b/core/lib/Drupal/Core/Entity/EntityManager.php
+index ef666d5bfa..ad351ff665 100644
+--- a/core/lib/Drupal/Core/Entity/EntityManager.php
++++ b/core/lib/Drupal/Core/Entity/EntityManager.php
+@@ -374,6 +374,30 @@ public function getTranslationFromContext(EntityInterface $entity, $langcode = N
+   /**
+    * {@inheritdoc}
+    *
++   * @deprecated in Drupal 8.7.0, will be removed before Drupal 9.0.0.
++   *   Use \Drupal\Core\Entity\EntityRepositoryInterface::getActive() instead.
++   *
++   * @see https://www.drupal.org/node/2549139
++   */
++  public function getActive($entityTypeId, $entityId,  array $contexts = []) {
++    return $this->container->get('entity.repository')->getActive($entityTypeId, $entityId, $contexts);
++  }
++
++  /**
++   * {@inheritdoc}
++   *
++   * @deprecated in Drupal 8.7.0, will be removed before Drupal 9.0.0.
++   *   Use \Drupal\Core\Entity\EntityRepositoryInterface::getActiveMultiple() instead.
++   *
++   * @see https://www.drupal.org/node/2549139
++   */
++  public function getActiveMultiple($entityTypeId, $entityIds,  array $contexts = []) {
++    return $this->container->get('entity.repository')->getActiveMultiple($entityTypeId, $entityIds, $contexts);
++  }
++
++  /**
++   * {@inheritdoc}
++   *
+    * @deprecated in Drupal 8.0.0, will be removed before Drupal 9.0.0.
+    *   Use \Drupal\Core\Entity\EntityDisplayRepositoryInterface::getAllViewModes()
+    *   instead.
+diff --git a/core/lib/Drupal/Core/Entity/EntityRepository.php b/core/lib/Drupal/Core/Entity/EntityRepository.php
+index 37a89d793e..52829ca589 100644
+--- a/core/lib/Drupal/Core/Entity/EntityRepository.php
++++ b/core/lib/Drupal/Core/Entity/EntityRepository.php
+@@ -112,4 +112,19 @@ public function getTranslationFromContext(EntityInterface $entity, $langcode = N
+     return $translation;
+   }
+ 
++  /**
++   * {@inheritdoc}
++   */
++  public function getActive($entityTypeId, $entityId, array $contexts = []) {
++    // To be implemented in revision_tree modules override.
++    return NULL;
++  }
++
++  /**
++   * {@inheritdoc}
++   */
++  public function getActiveMultiple($entityTypeId, array $entityIds, array $contexts = []) {
++    // To be implemented in revision_tree modules override.
++    return NULL;
++  }
+ }
+diff --git a/core/lib/Drupal/Core/Entity/EntityRepositoryInterface.php b/core/lib/Drupal/Core/Entity/EntityRepositoryInterface.php
+index d1229d4554..a598d3f446 100644
+--- a/core/lib/Drupal/Core/Entity/EntityRepositoryInterface.php
++++ b/core/lib/Drupal/Core/Entity/EntityRepositoryInterface.php
+@@ -69,4 +69,41 @@ public function loadEntityByConfigTarget($entity_type_id, $target);
+    */
+   public function getTranslationFromContext(EntityInterface $entity, $langcode = NULL, $context = []);
+ 
++  /**
++   * Retrieves the "active" entity revision for this entity id.
++   *
++   * @param string $entityTypeId
++   *   An entity type id.
++   * @param string $entityId
++   *   An entity id to retrieve the active revision for.
++   * @param string[] $contexts
++   *   A key value pair of context value overrides.
++   *
++   * @return \Drupal\Core\Entity\EntityInterface
++   *   The active revisions.
++   *
++   * @internal This is an experimental API. It will be published once it is
++   *   deemed mature enough. In the meantime, adopters should be prepared to
++   *   update their code to accommodate API changes.
++   */
++  public function getActive($entityTypeId, $entityId, array $contexts = []);
++
++  /**
++   * Retrieves the "active" entity revision for each entity id..
++   *
++   * @param string $entityTypeId
++   *   An entity type id.
++   * @param string[] $entityIds
++   *   A list of entity id's to retrieve active revisions for.
++   * @param string[] $contexts
++   *   A key value pair of context value overrides.
++   *
++   * @return \Drupal\Core\Entity\EntityInterface[]
++   *   The active revisions.
++   *
++   * @internal This is an experimental API. It will be published once it is
++   *   deemed mature enough. In the meantime, adopters should be prepared to
++   *   update their code to accommodate API changes.
++   */
++  public function getActiveMultiple($entityTypeId, array $entityIds, array $contexts = []);
+ }
+diff --git a/core/lib/Drupal/Core/ParamConverter/EntityConverter.php b/core/lib/Drupal/Core/ParamConverter/EntityConverter.php
+index 05dfbcb88e..6bdf562379 100644
+--- a/core/lib/Drupal/Core/ParamConverter/EntityConverter.php
++++ b/core/lib/Drupal/Core/ParamConverter/EntityConverter.php
+@@ -131,13 +131,9 @@ public function convert($value, $definition, $name, array $defaults) {
+     $entity = $storage->load($value);
+ 
+     // If the entity type is revisionable and the parameter has the
+-    // "load_latest_revision" flag, load the latest revision.
++    // "load_latest_revision" flag, load the active revision.
+     if ($entity instanceof RevisionableInterface && !empty($definition['load_latest_revision']) && $entity_definition->isRevisionable()) {
+-      // Retrieve the latest revision ID taking translations into account.
+-      $langcode = $this->languageManager()
+-        ->getCurrentLanguage(LanguageInterface::TYPE_CONTENT)
+-        ->getId();
+-      $entity = $this->getLatestTranslationAffectedRevision($entity, $langcode);
++      $entity = $this->entityRepository->getActive($entity->getEntityTypeId(), $entity->id());
+     }
+ 
+     // If the entity type is translatable, ensure we return the proper
+diff --git a/core/tests/Drupal/KernelTests/Core/ParamConverter/EntityConverterLatestRevisionTest.php b/core/tests/Drupal/KernelTests/Core/ParamConverter/EntityConverterLatestRevisionTest.php
+index 40d38867f0..983ba44987 100644
+--- a/core/tests/Drupal/KernelTests/Core/ParamConverter/EntityConverterLatestRevisionTest.php
++++ b/core/tests/Drupal/KernelTests/Core/ParamConverter/EntityConverterLatestRevisionTest.php
+@@ -6,6 +6,7 @@
+ use Drupal\entity_test\Entity\EntityTestMulRev;
+ use Drupal\KernelTests\KernelTestBase;
+ use Drupal\language\Entity\ConfigurableLanguage;
++use Drupal\user\Entity\User;
+ 
+ /**
+  * Tests the entity converter when the "load_latest_revision" flag is set.
+@@ -21,6 +22,7 @@ class EntityConverterLatestRevisionTest extends KernelTestBase {
+    * @var array
+    */
+   public static $modules = [
++    'revision_tree', // TODO: remove again
+     'entity_test',
+     'user',
+     'language',
