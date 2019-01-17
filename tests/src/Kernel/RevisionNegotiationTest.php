@@ -48,7 +48,7 @@ class RevisionNegotiationTest extends EntityKernelTestBase {
       ->setProvider('entity_test_rev');
 
     $d = BaseFieldDefinition::create('string')
-      ->setName('c')
+      ->setName('d')
       ->setRevisionable(TRUE)
       ->setProvider('entity_test_rev');
 
@@ -166,11 +166,12 @@ class RevisionNegotiationTest extends EntityKernelTestBase {
     /** @var \Drupal\Core\Entity\ContentEntityStorageInterface $storage */
     $storage = $this->entityManager->getStorage('entity_test_rev');
 
-    /** @var \Drupal\Core\Entity\ContentEntityInterface $a */
+    /** @var \Drupal\Core\Entity\ContentEntityInterface $x */
     $x = $storage->create();
     $x->a = 'x';
     $x->save();
 
+    /** @var \Drupal\Core\Entity\ContentEntityInterface $y */
     $y = $storage->createRevision($x);
     $y->a = 'y';
     $y->save();
@@ -191,11 +192,12 @@ class RevisionNegotiationTest extends EntityKernelTestBase {
     /** @var \Drupal\Core\Entity\ContentEntityStorageInterface $storage */
     $storage = $this->entityManager->getStorage('entity_test_rev');
 
-    /** @var \Drupal\Core\Entity\ContentEntityInterface $a */
+    /** @var \Drupal\Core\Entity\ContentEntityInterface $x */
     $x = $storage->create();
     $x->a = 'x';
     $x->save();
 
+    /** @var \Drupal\Core\Entity\ContentEntityInterface $y */
     $y = $storage->createRevision($x);
     $y->a = 'y';
     $y->save();
@@ -216,12 +218,13 @@ class RevisionNegotiationTest extends EntityKernelTestBase {
     /** @var \Drupal\Core\Entity\ContentEntityStorageInterface $storage */
     $storage = $this->entityManager->getStorage('entity_test_rev');
 
-    /** @var \Drupal\Core\Entity\ContentEntityInterface $a */
+    /** @var \Drupal\Core\Entity\ContentEntityInterface $x */
     $x = $storage->create();
     $x->a = 'x';
     $x->c = 'foo';
     $x->save();
 
+    /** @var \Drupal\Core\Entity\ContentEntityInterface $y */
     $y = $storage->createRevision($x);
     $y->a = 'foo';
     $y->c = 'y';
@@ -241,13 +244,14 @@ class RevisionNegotiationTest extends EntityKernelTestBase {
     /** @var \Drupal\Core\Entity\ContentEntityStorageInterface $storage */
     $storage = $this->entityManager->getStorage('entity_test_rev');
 
-    /** @var \Drupal\Core\Entity\ContentEntityInterface $a */
+    /** @var \Drupal\Core\Entity\ContentEntityInterface $x */
     $x = $storage->create();
     $x->a = 'x';
     $x->c = 'y';
     $x->d = 'foo';
     $x->save();
 
+    /** @var \Drupal\Core\Entity\ContentEntityInterface $y */
     $y = $storage->createRevision($x);
     $y->a = 'foo';
     $y->c = 'foo';
@@ -267,12 +271,13 @@ class RevisionNegotiationTest extends EntityKernelTestBase {
     /** @var \Drupal\Core\Entity\ContentEntityStorageInterface $storage */
     $storage = $this->entityManager->getStorage('entity_test_rev');
 
-    /** @var \Drupal\Core\Entity\ContentEntityInterface $a */
+    /** @var \Drupal\Core\Entity\ContentEntityInterface $x */
     $x = $storage->create();
     $x->a = 'foo';
     $x->c = 'z';
     $x->save();
 
+    /** @var \Drupal\Core\Entity\ContentEntityInterface $y */
     $y = $storage->createRevision($x);
     $y->a = 'x';
     $y->c = 'foo';
@@ -286,11 +291,12 @@ class RevisionNegotiationTest extends EntityKernelTestBase {
     /** @var \Drupal\Core\Entity\ContentEntityStorageInterface $storage */
     $storage = $this->entityManager->getStorage('entity_test_rev');
 
-    /** @var \Drupal\Core\Entity\ContentEntityInterface $a */
+    /** @var \Drupal\Core\Entity\ContentEntityInterface $x */
     $x = $storage->create();
     $x->a = 'x';
     $x->save();
 
+    /** @var \Drupal\Core\Entity\ContentEntityInterface $y */
     $y = $storage->createRevision($x);
     $y->a = 'y';
     $y->save();

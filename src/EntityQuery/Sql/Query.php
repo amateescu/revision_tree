@@ -1,6 +1,6 @@
 <?php
 
-namespace Drupal\revision_tree\EntityQuery;
+namespace Drupal\revision_tree\EntityQuery\Sql;
 
 use Drupal\Component\Utility\SortArray;
 use Drupal\Core\Entity\Query\Sql\Query as BaseQuery;

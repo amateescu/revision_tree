@@ -2,9 +2,9 @@ services:
 
   revision_tree.entity.query.sql:
     decorates: entity.query.sql
-    class: Drupal\revision_tree\EntityQuery\QueryFactory
+    class: Drupal\revision_tree\EntityQuery\Sql\QueryFactory
     arguments: ['@database']
     public: false
-    decoration_priority: 50
+    decoration_priority: 60
     tags:
       - { name: backend_overridable }
