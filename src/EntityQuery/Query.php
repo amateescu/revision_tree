@@ -76,7 +76,8 @@ class Query extends BaseQuery {
 
     foreach ($this->sortContexts as $context => $value) {
       if (array_key_exists($context, $allContextDefinitions)) {
-        $weight = $allContextDefinitions[$context];
+        $weight = $allContextDefinitions[$context]['weight'];
+
         // If the weight is negative, we are looking for a non-match.
         $operator = $weight > 0 ? '=' : '!=';
 
