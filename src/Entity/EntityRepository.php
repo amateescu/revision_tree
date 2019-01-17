@@ -2,9 +2,7 @@
 
 namespace Drupal\revision_tree\Entity;
 
-use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityRepository as CoreEntityRepository;
-use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\Core\Plugin\Context\ContextInterface;
@@ -29,23 +27,26 @@ class EntityRepository extends CoreEntityRepository {
     $this->contextRepository = $contextRepository;
   }
 
-  public function getActive(EntityInterface $entity, array $contexts = []) {
-    if ($entity->getEntityType()->isRevisionable()) {
-      $result = $this->getActiveMultiple($entity->getEntityType(), [$entity->id()], $contexts);
+  public function getActive($entityTypeId, $entityId, array $contexts = []) {
+    $entityType = $this->entityTypeManager->getDefinition($entityTypeId);
+    if ($entityType->isRevisionable()) {
+      $result = $this->getActiveMultiple($entityTypeId, [$entityId], $contexts);
       if ($result) {
         return reset($result);
       }
     }
-    return $entity;
+    return null;
   }
 
-  public function getActiveMultiple(EntityTypeInterface $entityType, array $entityIds, array $contexts = []) {
+  public function getActiveMultiple($entityTypeId, array $entityIds, array $contexts = []) {
     /** @var \Drupal\Core\Entity\ContentEntityStorageInterface $storage */
-    $storage = $this->entityTypeManager->getStorage($entityType->id());
-    /** @var \Drupal\revision_tree\EntityQuery\Query $query */
+    $storage = $this->entityTypeManager->getStorage($entityTypeId);
+    $entityType = $this->entityTypeManager->getDefinition($entityTypeId);
+
+    /** @var \Drupal\revision_tree\EntityQuery\Sql\Query $query */
     $query = $storage->getQuery();
 
-    $contextualFields = $entityType->get('contextual_fields');
+    $contextualFields = $entityType->get('contextual_fields') ?: [];
 
     $fieldContexts = array_map(function ($field) {
       return $field['context'];

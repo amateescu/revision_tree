@@ -154,7 +154,7 @@ class RevisionNegotiationTest extends EntityKernelTestBase {
 
     /** @var \Drupal\revision_tree\Entity\EntityRepository $repository */
     $repository = $this->container->get('entity.repository');
-    $this->assertEquals($entity, $repository->getActive($entity, ['foo' => 'bar']));
+    $this->assertNull($repository->getActive('entity_test', $entity->id(), ['foo' => 'bar']));
   }
 
   /**
@@ -177,10 +177,10 @@ class RevisionNegotiationTest extends EntityKernelTestBase {
     $y->save();
 
     $this->mockContexts(['a' => 'x']);
-    $this->assertEquals($x->getLoadedRevisionId(), $repository->getActive($x)->getLoadedRevisionId());
+    $this->assertEquals($x->getLoadedRevisionId(), $repository->getActive('entity_test_rev', $x->id())->getLoadedRevisionId());
 
     $this->mockContexts(['a' => 'y']);
-    $this->assertEquals($y->getLoadedRevisionId(), $repository->getActive($x)->getLoadedRevisionId());
+    $this->assertEquals($y->getLoadedRevisionId(), $repository->getActive('entity_test_rev', $x->id())->getLoadedRevisionId());
   }
 
   /**
@@ -203,10 +203,10 @@ class RevisionNegotiationTest extends EntityKernelTestBase {
     $y->save();
 
     $this->mockContexts(['a' => 'y']);
-    $this->assertEquals($x->getLoadedRevisionId(), $repository->getActive($x, ['a' => 'x'])->getLoadedRevisionId());
+    $this->assertEquals($x->getLoadedRevisionId(), $repository->getActive('entity_test_rev', $x->id(), ['a' => 'x'])->getLoadedRevisionId());
 
     $this->mockContexts(['a' => 'x']);
-    $this->assertEquals($y->getLoadedRevisionId(), $repository->getActive($x, ['a' => 'y'])->getLoadedRevisionId());
+    $this->assertEquals($y->getLoadedRevisionId(), $repository->getActive('entity_test_rev', $x->id(), ['a' => 'y'])->getLoadedRevisionId());
   }
 
   /**
@@ -231,7 +231,7 @@ class RevisionNegotiationTest extends EntityKernelTestBase {
     $y->save();
 
     $this->mockContexts(['a' => 'x', 'c' => 'y']);
-    $this->assertEquals($y->getLoadedRevisionId(), $repository->getActive($x)->getLoadedRevisionId());
+    $this->assertEquals($y->getLoadedRevisionId(), $repository->getActive('entity_test_rev', $x->id())->getLoadedRevisionId());
   }
 
   /**
@@ -259,7 +259,7 @@ class RevisionNegotiationTest extends EntityKernelTestBase {
     $y->save();
 
     $this->mockContexts(['a' => 'x', 'c' => 'y', 'd' => 'z']);
-    $this->assertEquals($y->getLoadedRevisionId(), $repository->getActive($x)->getLoadedRevisionId());
+    $this->assertEquals($y->getLoadedRevisionId(), $repository->getActive('entity_test_rev', $x->id())->getLoadedRevisionId());
   }
 
   /**
@@ -284,7 +284,7 @@ class RevisionNegotiationTest extends EntityKernelTestBase {
     $y->save();
 
     $this->mockContexts(['a' => 'x', 'c' => ['y', 'z'] ]);
-    $this->assertEquals($x->getLoadedRevisionId(), $repository->getActive($x)->getLoadedRevisionId());
+    $this->assertEquals($x->getLoadedRevisionId(), $repository->getActive('entity_test_rev', $x->id())->getLoadedRevisionId());
   }
 
   public function testActiveRevisionsQuery() {

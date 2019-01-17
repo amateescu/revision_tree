@@ -20,7 +20,7 @@ function revision_tree_entity_type_build(array &$entity_types) {
       $revision_metadata_keys = $entity_type->get('revision_metadata_keys');
       $revision_metadata_keys['revision_parent'] = 'revision_parent';
 
-      if (\Drupal::service('workspaces.manager')->isEntityTypeSupported($entity_type)) {
+      if (\Drupal::hasService('workspaces.manager') && \Drupal::service('workspaces.manager')->isEntityTypeSupported($entity_type)) {
         $revision_metadata_keys['workspace'] = 'workspace';
       }
 
@@ -43,17 +43,19 @@ function revision_tree_entity_base_field_info(EntityTypeInterface $entity_type) 
       ->setTranslatable(FALSE)
       ->setRevisionable(TRUE);
 
-    /** @var \Drupal\workspaces\WorkspaceManagerInterface $workspace_manager */
-    $workspace_manager = \Drupal::service('workspaces.manager');
-    if ($workspace_manager->isEntityTypeSupported($entity_type)) {
-      $field_name = $entity_type->getRevisionMetadataKeys(FALSE)['workspace'];
-      $base_field_definitions[$field_name] = BaseFieldDefinition::create('entity_reference')
-        ->setLabel(t('Workspace'))
-        ->setDescription(t('Indicates the workspace that this revision belongs to.'))
-        ->setSetting('target_type', 'workspace')
-        ->setInternal(TRUE)
-        ->setTranslatable(FALSE)
-        ->setRevisionable(TRUE);
+    if (\Drupal::hasService('workspaces.manager')) {
+      /** @var \Drupal\workspaces\WorkspaceManagerInterface $workspace_manager */
+      $workspace_manager = \Drupal::service('workspaces.manager');
+      if ($workspace_manager->isEntityTypeSupported($entity_type)) {
+        $field_name = $entity_type->getRevisionMetadataKeys(FALSE)['workspace'];
+        $base_field_definitions[$field_name] = BaseFieldDefinition::create('entity_reference')
+          ->setLabel(t('Workspace'))
+          ->setDescription(t('Indicates the workspace that this revision belongs to.'))
+          ->setSetting('target_type', 'workspace')
+          ->setInternal(TRUE)
+          ->setTranslatable(FALSE)
+          ->setRevisionable(TRUE);
+      }
     }
 
     return $base_field_definitions;
@@ -70,14 +72,20 @@ function revision_tree_entity_revision_create(EntityInterface $new_revision, Ent
 
   // Set the target workspace by default.
   /** @var \Drupal\workspaces\WorkspaceManagerInterface $workspace_manager */
-  $field_name = $entity->getEntityType()->getRevisionMetadataKeys(FALSE)['workspace'];
-  $new_revision->{$field_name}->target_id = \Drupal::service('workspaces.manager')->getActiveWorkspace()->id();
+  if (\Drupal::moduleHandler()->moduleExists('workspaces')) {
+    $field_name = $entity->getEntityType()->getRevisionMetadataKeys(FALSE)['workspace'];
+    $new_revision->{$field_name}->target_id = \Drupal::service('workspaces.manager')->getActiveWorkspace()->id();
+  }
 }
 
 /**
  * Implements hook_entity_presave().
  */
 function revision_tree_entity_presave(EntityInterface $entity) {
+  if (!\Drupal::hasService('workspaces.manager')) {
+    return;
+  }
+
   /** @var \Drupal\workspaces\WorkspaceManagerInterface $workspace_manager */
   $workspace_manager = \Drupal::service('workspaces.manager');
 
