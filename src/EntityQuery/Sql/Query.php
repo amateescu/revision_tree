@@ -2,7 +2,6 @@
 
 namespace Drupal\revision_tree\EntityQuery\Sql;
 
-use Drupal\Component\Utility\SortArray;
 use Drupal\Core\Entity\Query\Sql\Query as BaseQuery;
 
 /**
@@ -15,24 +14,13 @@ class Query extends BaseQuery {
    *
    * @var array
    */
-  protected $sortContexts = [];
-
-  /**
-   * The sort direction.
-   *
-   * @var string
-   */
-  protected $sortDirection = 'DESC';
+  protected $matchingContexts = [];
 
   /**
    * @var bool
    */
   protected $activeRevisions = false;
 
-  /**
-   * @var array
-   */
-  private $contextSortExpression = '0';
 
   /**
    * Retrieve the active revisions for each result entity.
@@ -42,22 +30,9 @@ class Query extends BaseQuery {
    *
    */
   public function activeRevisions(array $contexts) {
-    // TODO: Narrow down to leaves based on the tree field.
     $this->allRevisions();
     $this->activeRevisions = TRUE;
-    $this->orderByContextMatching($contexts);
-  }
-
-  /**
-   * Order entity query results by context matching.
-   *
-   * @param array $contexts
-   * @param string $direction
-   * @param null $langcode
-   */
-  public function orderByContextMatching(array $contexts, $direction = 'DESC') {
-    $this->sortContexts = $contexts;
-    $this->sortDirection = $direction;
+    $this->matchingContexts = $contexts;
   }
 
   /**
@@ -66,33 +41,41 @@ class Query extends BaseQuery {
   public function prepare() {
     parent::prepare();
     // Retrieve entity contexts from the entity type definition.
-    $allContextDefinitions = $this->entityType->get('contextual_fields');
+    return $this;
+  }
 
+  /**
+   * Build matching expression.
+   *
+   * Used to quantify the distance to the current context values.
+   *
+   * @param $table
+   *   The table name.
+   *
+   * @return array
+   *   Tuple of the SQL expression and the arguments array.
+   */
+  protected function buildMatchingScoreExpression($table) {
+    $allContextDefinitions = $this->entityType->get('contextual_fields');
     // The default expression just returns '0'.
     $expressions[] = [
       '0',
       [],
     ];
 
-    foreach ($this->sortContexts as $context => $value) {
+    foreach ($this->matchingContexts as $context => $value) {
       if (array_key_exists($context, $allContextDefinitions)) {
         $weight = $allContextDefinitions[$context]['weight'];
 
         // If the weight is negative, we are looking for a non-match.
         $operator = $weight > 0 ? '=' : '!=';
 
-        $langcode = NULL;
-        if (is_array($value) && array_key_exists('langcode', $value) && array_key_exists('value', $value)) {
-          $langcode = $value['langcode'];
-          $value = $value['value'];
-        }
-
-        $sqlField = $this->getSqlField($context, $langcode);
+        $sqlField = "$table.$context";
         $field = $context;
         if (is_array($value)) {
           foreach ($value as $index => $val) {
             $expressions[] = [
-              "IF({$sqlField} {$operator} :{$field}__value_{$index}, 1, 0) * :{$field}__weight_{$index}",
+              "IF({$sqlField} IS NOT NULL AND {$sqlField} {$operator} :{$field}__value_{$index}, 1, 0) * :{$field}__weight_{$index}",
               [
                 ":{$field}__value_{$index}" => $val,
                 ":{$field}__weight_{$index}" => $weight + (0.01 * $weight/abs($weight)),
@@ -102,7 +85,7 @@ class Query extends BaseQuery {
         }
         else {
           $expressions[] = [
-            "IF({$sqlField} {$operator} :{$field}__value, 1, 0) * :{$field}__weight",
+            "IF({$sqlField} IS NOT NULL AND {$sqlField} {$operator} :{$field}__value, 1, 0) * :{$field}__weight",
             [
               ":{$field}__value" => $value,
               ":{$field}__weight" => $weight,
@@ -112,79 +95,56 @@ class Query extends BaseQuery {
       }
     }
 
-    $this->contextSortExpression = $expressions;
+    $expression = implode(' + ', array_map(function($expr) {
+      return $expr[0];
+    }, $expressions));
 
-    return $this;
-  }
+    $arguments = array_reduce(array_map(function ($expr) {
+      return $expr[1];
+    }, $expressions), 'array_merge', []);
+
+    return [$expression, $arguments];
+}
 
   /**
    * {@inheritdoc}
    */
   protected function finish() {
-    if (!$this->contextSortExpression) {
+    if (!$this->activeRevisions) {
       return parent::finish();
     }
 
-    $alias = 'revision_context_match';
+    $idField = $this->entityType->getKey('id');
+    $revisionField = $this->entityType->getKey('revision');
+    $baseTable = $this->entityType->getRevisionTable();
 
-    $expression = implode(' + ', array_map(function($expr) {
-      return $expr[0];
-    }, $this->contextSortExpression));
+    // TODO: Properly pull them out of query tables.
+    $parentField = 'revision_parent__target_id';
+    $mergeParentSqlField = 'revision_parent__merge_target_id';
 
-    $arguments = array_reduce(array_map(function ($expr) {
-      return $expr[1];
-    }, $this->contextSortExpression), 'array_merge', []);
+    // Create a temporary table with all leaves of the revision tree and their
+    // matching score that will tell us which revision is the most appropriate
+    // one.
+    /** @var \Drupal\Core\Database\Query\Select $rankedLeavesQuery */
+    $rankedLeavesQuery = $this->connection->select($baseTable, 'base_table');
+    $rankedLeavesQuery->fields('base_table', [$idField, $revisionField]);
+    $rankedLeavesQuery->leftJoin($baseTable, 'children', "base_table.$revisionField == children.$parentField AND base_table.$revisionField == children.$mergeParentSqlField");
+    $rankedLeavesQuery->isNull("children.$revisionField");
+    list($expression, $arguments) = $this->buildMatchingScoreExpression('base_table');
+    $rankedLeavesQuery->addExpression($expression, 'score', $arguments);
+    $rankedLeaves = $this->connection->queryTemporary(
+      (string) $rankedLeavesQuery,
+      $rankedLeavesQuery->getArguments()
+    );
 
-    $this->sqlQuery->addExpression($expression, $alias, $arguments);
-
-    if ($this->activeRevisions) {
-      // If this is an active revisions query, build the set of weighted
-      // revision ids.
-      $idField = $this->getSqlField($this->entityType->getKey('id'), NULL);
-      $revisionField = $this->getSqlField($this->entityType->getKey('revision'), NULL);
-      $this->sqlQuery->groupBy($idField);
-
-      // Build an expression that results in a json-array with tuples of
-      // revision id's and their matching score.
-      // This array is parsed in `execute()` and the highest ranked revision id
-      // will be returned.
-      //
-      // Example:
-      // [
-      //   [ '1', 0 ],
-      //   [ '3', 1.1 ],
-      //   [ '8', 0.6 ]
-      // ]
-      $concatExpr = "CONCAT('[', GROUP_CONCAT(CONCAT('[\"', REPLACE($revisionField, '\"', '\\\"'), '\",', $expression, ']')), ']')";
-      $this->sqlQuery->addExpression($concatExpr, $this->entityType->getKey('revision'));
-    }
-    else {
-      // If this is not an active revisions query, just sort the results by
-      // matching score.
-      $this->sqlQuery->orderBy($alias, $this->sortDirection);
-    }
+    // Join the ranking field into the query.
+    $this->sqlQuery->join($rankedLeaves, 'l', "base_table.$revisionField = l.$revisionField");
+    // Join the ranking a second time, to find the revisions that have no higher
+    // scored sibling.
+    $this->sqlQuery->leftJoin($rankedLeaves, 'r', "l.$idField = r.$idField AND l.score < r.score");
+    $this->sqlQuery->isNull("r.score");
 
     return parent::finish();
-  }
-
-  public function execute() {
-    // If this is not an activeRevisions query, just return the result.
-    if (!$this->activeRevisions) {
-      return parent::execute();
-    }
-
-    // If we are looking for active revisions, a weighted json array is returned.
-    // Find the revision id with the highest matching score.
-    $result = parent::execute();
-    $processed = [];
-    foreach ($result as $encoded => $id) {
-      $ranked = json_decode($encoded);
-      usort($ranked, function ($a, $b) {
-        return SortArray::sortByKeyInt($b, $a, 1);
-      });
-      $processed[$ranked[0][0]] = $id;
-    }
-    return $processed;
   }
 
 }

@@ -287,25 +287,35 @@ class RevisionNegotiationTest extends EntityKernelTestBase {
     $this->assertEquals($x->getLoadedRevisionId(), $repository->getActive('entity_test_rev', $x->id())->getLoadedRevisionId());
   }
 
+  /**
+   * Test the basic active-revisions query.
+   */
   public function testActiveRevisionsQuery() {
     /** @var \Drupal\Core\Entity\ContentEntityStorageInterface $storage */
     $storage = $this->entityManager->getStorage('entity_test_rev');
 
     /** @var \Drupal\Core\Entity\ContentEntityInterface $x */
+    // This has the highest matching score, but will not be in the result set
+    // because it is no leaf.
     $x = $storage->create();
-    $x->a = 'x';
+    $x->c = 'z';
     $x->save();
 
     /** @var \Drupal\Core\Entity\ContentEntityInterface $y */
+    // This matches the context.
     $y = $storage->createRevision($x);
-    $y->a = 'y';
+    $y->a = 'x';
     $y->save();
 
+    /** @var \Drupal\Core\Entity\ContentEntityInterface $y */
+    // This doesn't match the context.
+    $z = $storage->createRevision($x);
+    $z->a = 'y';
+    $z->save();
 
-    /** @var \Drupal\revision_tree\EntityQuery\Query $query */
     $query = $storage->getQuery();
-    $query->activeRevisions(['a' => 'y']);
+    $query->activeRevisions(['a' => 'x', 'c' => 'z']);
     $result = $query->execute();
-    $this->assertEquals([2  => '1'], $result);
+    $this->assertEquals([$y->getLoadedRevisionId()  => '1'], $result);
   }
 }
