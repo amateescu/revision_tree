@@ -128,8 +128,9 @@ class Query extends BaseQuery {
     /** @var \Drupal\Core\Database\Query\Select $rankedLeavesQuery */
     $rankedLeavesQuery = $this->connection->select($baseTable, 'base_table');
     $rankedLeavesQuery->fields('base_table', [$idField, $revisionField]);
-    $rankedLeavesQuery->leftJoin($baseTable, 'children', "base_table.$revisionField == children.$parentField AND base_table.$revisionField == children.$mergeParentSqlField");
+    $rankedLeavesQuery->leftJoin($baseTable, 'children', "base_table.$revisionField = children.$parentField AND base_table.$revisionField = children.$mergeParentSqlField");
     $rankedLeavesQuery->isNull("children.$revisionField");
+
     list($expression, $arguments) = $this->buildMatchingScoreExpression('base_table');
     $rankedLeavesQuery->addExpression($expression, 'score', $arguments);
     $rankedLeaves = $this->connection->queryTemporary(
