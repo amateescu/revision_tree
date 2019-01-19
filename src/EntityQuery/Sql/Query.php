@@ -67,29 +67,37 @@ class Query extends BaseQuery {
       if (array_key_exists($context, $allContextDefinitions)) {
         $weight = $allContextDefinitions[$context]['weight'];
 
+        $neutral = isset($allContextDefinitions[$context]['neutral']) ? $allContextDefinitions[$context]['neutral'] : null;
+
         // If the weight is negative, we are looking for a non-match.
         $operator = $weight > 0 ? '=' : '!=';
 
-        $sqlField = "$table.$context";
         $field = $context;
+        $sqlField = "$table.$context";
+
+        $neutralCondition = "{$sqlField} IS NOT NULL";
+        if ($neutral) {
+          $neutralCondition = "{$sqlField} != :{$field}__neutral";
+        }
+
         if (is_array($value)) {
           foreach ($value as $index => $val) {
             $expressions[] = [
-              "IF({$sqlField} IS NOT NULL AND {$sqlField} {$operator} :{$field}__value_{$index}, 1, 0) * :{$field}__weight_{$index}",
+              "IF($neutralCondition AND {$sqlField} {$operator} :{$field}__value_{$index}, 1, 0) * :{$field}__weight_{$index}",
               [
                 ":{$field}__value_{$index}" => $val,
                 ":{$field}__weight_{$index}" => $weight + (0.01 * $weight/abs($weight)),
-              ],
+              ] + ($neutral ? [":{$field}__neutral" => $neutral] : []),
             ];
           }
         }
         else {
           $expressions[] = [
-            "IF({$sqlField} IS NOT NULL AND {$sqlField} {$operator} :{$field}__value, 1, 0) * :{$field}__weight",
+            "IF($neutralCondition AND {$sqlField} {$operator} :{$field}__value, 1, 0) * :{$field}__weight",
             [
               ":{$field}__value" => $value,
               ":{$field}__weight" => $weight,
-            ],
+            ] + ($neutral ? [":{$field}__neutral" => $neutral] : []),
           ];
         }
       }

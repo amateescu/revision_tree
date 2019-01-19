@@ -67,7 +67,7 @@ class RevisionNegotiationTest extends EntityKernelTestBase {
     $entity_type->set('contextual_fields', [
       'a' => ['weight' => 1, 'context' => '@test_context:a'],
       'b' => ['weight' => 1, 'context'=> '@test_context:b'],
-      'c' => ['weight' => 2, 'context' => '@test_context:c'],
+      'c' => ['weight' => 2, 'context' => '@test_context:c', 'neutral' => 'neutral'],
       'd' => ['weight' => -10, 'context' => '@test_context:d'],
     ]);
     \Drupal::state()->set('entity_test_rev.entity_type', $entity_type);
@@ -232,6 +232,36 @@ class RevisionNegotiationTest extends EntityKernelTestBase {
 
     $this->mockContexts(['a' => 'x', 'c' => 'y']);
     $this->assertEquals($y->getLoadedRevisionId(), $repository->getActive('entity_test_rev', $x->id())->getLoadedRevisionId());
+  }
+
+  /**
+   * Every field can declare a "neutral" value that will be ignored.
+   *
+   * These value can be used as default fallback.
+   *
+   * Example: The default language or the "Live" workspace.
+   */
+  public function testNeutralContextValues() {
+    /** @var \Drupal\revision_tree\Entity\EntityRepository $repository */
+    $repository = $this->container->get('entity.repository');
+    /** @var \Drupal\Core\Entity\ContentEntityStorageInterface $storage */
+    $storage = $this->entityManager->getStorage('entity_test_rev');
+
+    /** @var \Drupal\Core\Entity\ContentEntityInterface $x */
+    $x = $storage->create();
+    $x->a = 'x';
+    $x->c = 'foo';
+    $x->save();
+
+    /** @var \Drupal\Core\Entity\ContentEntityInterface $y */
+    $y = $storage->createRevision($x);
+    $y->a = 'foo';
+    $y->c = 'neutral';
+    $y->save();
+
+    // Field c matches the neutral value which is ignored during calculation.
+    $this->mockContexts(['a' => 'x', 'c' => 'neutral']);
+    $this->assertEquals($x->getLoadedRevisionId(), $repository->getActive('entity_test_rev', $x->id())->getLoadedRevisionId());
   }
 
   /**
