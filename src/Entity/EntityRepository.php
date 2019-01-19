@@ -11,13 +11,19 @@ use Drupal\Core\Plugin\Context\ContextRepositoryInterface;
 /**
  * Forked version of the entity repository to implement revision negotiation.
  */
-class EntityRepository extends CoreEntityRepository {
+class EntityRepository extends CoreEntityRepository implements RevisionTreeEntityRepositoryInterface {
 
   /**
    * @var \Drupal\Core\Plugin\Context\ContextRepositoryInterface
    */
   protected $contextRepository;
 
+  /**
+   * {@inheritdoc}
+   *
+   * @param \Drupal\Core\Plugin\Context\ContextRepositoryInterface $contextRepository
+   *   A context repository to resolve context values with.
+   */
   public function __construct(
     EntityTypeManagerInterface $entity_type_manager,
     LanguageManagerInterface $language_manager,
@@ -27,6 +33,9 @@ class EntityRepository extends CoreEntityRepository {
     $this->contextRepository = $contextRepository;
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function getActive($entityTypeId, $entityId, array $contexts = []) {
     $entityType = $this->entityTypeManager->getDefinition($entityTypeId);
     if ($entityType->isRevisionable()) {
@@ -38,6 +47,9 @@ class EntityRepository extends CoreEntityRepository {
     return null;
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function getActiveMultiple($entityTypeId, array $entityIds, array $contexts = []) {
     /** @var \Drupal\Core\Entity\ContentEntityStorageInterface $storage */
     $storage = $this->entityTypeManager->getStorage($entityTypeId);
