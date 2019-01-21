@@ -1,0 +1,16 @@
+services:
+
+  revision_tree.entity.query.sql:
+    decorates: entity.query.sql
+    class: Drupal\revision_tree\EntityQuery\Sql\QueryFactory
+    arguments: ['@database']
+    public: false
+    decoration_priority: 40
+    tags:
+      - { name: backend_overridable }
+
+  revision_tree.workspace_context:
+    class: Drupal\revision_tree\ContextProvider\WorkspaceContextProvider
+    arguments: ['@workspaces.manager']
+    tags:
+      - { name: context_provider }
