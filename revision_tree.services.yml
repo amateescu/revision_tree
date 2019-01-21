@@ -14,3 +14,13 @@ services:
     arguments: ['@workspaces.manager']
     tags:
       - { name: context_provider }
+
+  revision_tree.conflict_resolver:
+    class: \Drupal\revision_tree\ConflictResolver\ConflictResolverManager
+    tags:
+      - { name: service_collector, tag: conflict_resolver, call: addConflictResolver }
+
+  revision_tree.conflict_resolver_default:
+    class: \Drupal\revision_tree\ConflictResolver\ConflictResolverDefault
+    tags:
+      - { name: conflict_resolver }
