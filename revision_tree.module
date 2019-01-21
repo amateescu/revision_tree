@@ -5,9 +5,23 @@
  * Provides the revision tree API.
  */
 
+use Drupal\Core\Entity\EntityFormInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Field\BaseFieldDefinition;
+use Drupal\Core\Form\FormStateInterface;
+
+/**
+ * Implements hook_module_implements_alter().
+ */
+function revision_tree_module_implements_alter(&$implementations, $hook) {
+  // Make sure that our hooks run after the ones from the workspaces module.
+  if (in_array($hook, ['form_alter', 'entity_type_build'])) {
+    $group = $implementations['revision_tree'];
+    unset($implementations['revision_tree']);
+    $implementations['revision_tree'] = $group;
+  }
+}
 
 /**
  * Implements hook_entity_type_build().
@@ -22,9 +36,22 @@ function revision_tree_entity_type_build(array &$entity_types) {
 
       if (\Drupal::hasService('workspaces.manager') && \Drupal::service('workspaces.manager')->isEntityTypeSupported($entity_type)) {
         $revision_metadata_keys['workspace'] = 'workspace';
+        $entity_type->set('contextual_fields', [
+          'workspace' => [
+            'field' => 'workspace',
+            'weight' => -1,
+            'neutral' => 'live',
+            'context' => '@revision_tree.workspace_context:hierarchy',
+          ],
+        ]);
       }
 
       $entity_type->set('revision_metadata_keys', $revision_metadata_keys);
+
+      // Remove the workspace conflict constraint.
+      $constraints = $entity_type->getConstraints();
+      unset($constraints['EntityWorkspaceConflict']);
+      $entity_type->setConstraints($constraints);
     }
   }
 }
@@ -99,5 +126,16 @@ function revision_tree_entity_presave(EntityInterface $entity) {
   if ($workspace_manager->isEntityTypeSupported($entity->getEntityType()) && !$entity->isDefaultRevision()) {
     $field_name = $entity_type->getRevisionMetadataKeys(FALSE)['workspace'];
     $entity->{$field_name}->target_id = $workspace_manager->getActiveWorkspace()->id();
+  }
+}
+
+function revision_tree_form_alter(&$form, FormStateInterface $formState, $formId) {
+  if ($formState->getFormObject() instanceof EntityFormInterface) {
+    // Hack detection if the form has been disabled by workspaces.
+    // TODO: Patch it properly into workspaces.
+    if (isset($form['#access']) && $form['#access'] === FALSE && isset($form['#markup'])) {
+      unset($form['#access']);
+      unset($form['#markup']);
+    }
   }
 }
