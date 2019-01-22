@@ -70,10 +70,10 @@ class ConflictResolverManager implements ConflictResolverManagerInterface {
   }
 
   /**
-   * Sorts translators according to priority.
+   * Sorts the conflict resolvers according to priority.
    *
-   * @return \Drupal\Core\StringTranslation\Translator\TranslatorInterface[]
-   *   A sorted array of translator objects.
+   * @return \Drupal\revision_tree\ConflictResolver\ConflictResolverInterface[]
+   *   A sorted array of conflict resolvers.
    */
   protected function sortConflictResolvers() {
     $sorted = [];
