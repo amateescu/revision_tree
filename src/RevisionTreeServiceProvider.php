@@ -28,13 +28,6 @@ class RevisionTreeServiceProvider extends ServiceProviderBase {
       $definition->setClass(RevisionTreeEntityConverter::class);
     }
 
-   //Fixes a blacklist matching bug in the original WorkspaceManager.
-   // TODO: Move this to a patch.
-    if ($container->hasDefinition('workspaces.manager')) {
-      $definition = $container->getDefinition('workspaces.manager');
-      $definition->setClass(WorkspaceManager::class);
-    }
-
   }
 
 }

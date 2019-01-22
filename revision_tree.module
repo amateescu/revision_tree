@@ -5,6 +5,7 @@
  * Provides the revision tree API.
  */
 
+use Drupal\content_moderation\Form\EntityModerationForm;
 use Drupal\Core\Entity\EntityFormInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
@@ -51,6 +52,7 @@ function revision_tree_entity_type_build(array &$entity_types) {
       // Remove the workspace conflict constraint.
       $constraints = $entity_type->getConstraints();
       unset($constraints['EntityWorkspaceConflict']);
+      unset($constraints['EntityChanged']);
       $entity_type->setConstraints($constraints);
     }
   }
@@ -100,8 +102,10 @@ function revision_tree_entity_revision_create(EntityInterface $new_revision, Ent
   // Set the target workspace by default.
   /** @var \Drupal\workspaces\WorkspaceManagerInterface $workspace_manager */
   if (\Drupal::moduleHandler()->moduleExists('workspaces')) {
-    $field_name = $entity->getEntityType()->getRevisionMetadataKeys(FALSE)['workspace'];
-    $new_revision->{$field_name}->target_id = \Drupal::service('workspaces.manager')->getActiveWorkspace()->id();
+    $keys = $entity->getEntityType()->getRevisionMetadataKeys(FALSE);
+    if (isset($keys['workspace'])) {
+      $new_revision->{$keys['workspace']}->target_id = \Drupal::service('workspaces.manager')->getActiveWorkspace()->id();
+    }
   }
 }
 
@@ -138,4 +142,10 @@ function revision_tree_form_alter(&$form, FormStateInterface $formState, $formId
       unset($form['#markup']);
     }
   }
+
+  // Allow to submit the entity moderation form.
+  if ($formState->getFormObject() instanceof EntityModerationForm) {
+    $formState->set('workspace_safe', TRUE);
+  }
+
 }
