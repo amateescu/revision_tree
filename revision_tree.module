@@ -55,6 +55,11 @@ function revision_tree_entity_type_build(array &$entity_types) {
       unset($constraints['EntityChanged']);
       $entity_type->setConstraints($constraints);
     }
+
+    // Mark file and crop entities internal. Questionable, I know.
+    if ($entity_type->id() === 'file' || $entity_type === 'crop') {
+      $entity_type->set('internal', TRUE);
+    }
   }
 }
 
