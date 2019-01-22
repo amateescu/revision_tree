@@ -44,7 +44,7 @@ class SqlRevisionTreeHandler implements EntityHandlerInterface, RevisionTreeHand
    *
    * @var array
    */
-  protected $ancestor_ids = [];
+  protected $ancestorIds = [];
 
   /**
    * Constructs a SqlRevisionTreeHandler object.
@@ -77,7 +77,7 @@ class SqlRevisionTreeHandler implements EntityHandlerInterface, RevisionTreeHand
    * {@inheritdoc}
    */
   public function getLowestCommonAncestor(RevisionableInterface $entity, $first_revision_id, $second_revision_id) {
-    $ancestors = &$this->ancestor_ids[$entity->id()];
+    $ancestors = &$this->ancestorIds[$entity->id()];
 
     if (empty($ancestors)) {
       /** @var \Drupal\Core\Entity\EntityInterface $entity */
@@ -101,33 +101,30 @@ class SqlRevisionTreeHandler implements EntityHandlerInterface, RevisionTreeHand
       $query->addField('t', $parent_revision_id_column, 'parent_id');
       $query->addField('t', $merge_revision_id_column, 'merge_parent_id');
       $query->orderBy($revision_id_column, 'ASC');
+      $all_revisions = $query->execute()->fetchAllAssoc('id');
 
       $graph = [];
-      foreach ($query->execute() as $row) {
-        // We store "ancestors and self" IDs, so we need to add the item itself
-        // to the list.
-        $ancestors[$row->id] = [$row->id];
-
+      foreach ($all_revisions as $revision_id => $row) {
         if ($row->parent_id) {
-          $graph[$row->id]['edges'][$row->parent_id] = TRUE;
+          $graph[$revision_id]['edges'][$row->parent_id] = TRUE;
         }
 
         if ($row->merge_parent_id) {
-          $graph[$row->id]['edges'][$row->merge_parent_id] = TRUE;
+          $graph[$revision_id]['edges'][$row->merge_parent_id] = TRUE;
         }
       }
 
-      $processed_graph = (new Graph($graph))->searchAndSort();
-      foreach ($processed_graph as $revision_id => $values) {
-        // Keep the ancestors of this revision as well as its own ID.
-        $graph_paths = isset($values['paths']) ? array_keys($values['paths']) : [];
-        $ancestors[$revision_id] = array_merge($ancestors[$revision_id], $graph_paths);
+      $revision_graph = (new Graph($graph))->searchAndSort();
+      foreach ($all_revisions as $revision_id => $row) {
+        $graph_paths = isset($revision_graph[$revision_id]['paths']) ? array_keys($revision_graph[$revision_id]['paths']) : [];
+        // We store "ancestors and self" IDs, so we need to add the current
+        // revision ID to the list.
+        $ancestors[$revision_id] = array_merge([$row->id => $row->id], $graph_paths);
       }
 
       // Free up memory early.
-      $processed_graph = NULL;
+      $revision_graph = NULL;
       $graph = NULL;
-      $graph_paths = NULL;
     }
 
     if (!isset($ancestors[$first_revision_id])) {
