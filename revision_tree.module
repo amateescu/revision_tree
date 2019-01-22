@@ -10,6 +10,7 @@ use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\revision_tree\SqlRevisionTreeHandler;
 
 /**
  * Implements hook_module_implements_alter().
@@ -47,6 +48,8 @@ function revision_tree_entity_type_build(array &$entity_types) {
       }
 
       $entity_type->set('revision_metadata_keys', $revision_metadata_keys);
+
+      $entity_type->setHandlerClass('revision_tree', SqlRevisionTreeHandler::class);
 
       // Remove the workspace conflict constraint.
       $constraints = $entity_type->getConstraints();
