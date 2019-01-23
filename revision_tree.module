@@ -57,7 +57,7 @@ function revision_tree_entity_type_build(array &$entity_types) {
     }
 
     // Mark file and crop entities internal. Questionable, I know.
-    if ($entity_type->id() === 'file' || $entity_type === 'crop') {
+    if ($entity_type->id() === 'file' || $entity_type->id() === 'crop') {
       $entity_type->set('internal', TRUE);
     }
   }
