@@ -23,7 +23,7 @@ interface ConflictResolverUIInterface {
   public function applies(ContentEntityBase $revisionA, ContentEntityBase $revisionB);
 
   /**
-   * Renders the conflict resolver UI widget.
+   * Builds the conflict resolver UI widget.
    *
    * @param \Drupal\Core\Entity\ContentEntityBase $revisionA
    *  The first revision.
@@ -32,5 +32,5 @@ interface ConflictResolverUIInterface {
    * @return array | null
    *  A render array representing the UI.
    */
-  public function render(ContentEntityBase $revisionA, ContentEntityBase $revisionB);
+  public function conflictResolverUI(ContentEntityBase $revisionA, ContentEntityBase $revisionB);
 }

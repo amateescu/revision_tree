@@ -29,13 +29,13 @@ class ConflictResolverUIManager implements ConflictResolverUIManagerInterface {
   /**
    * {@inheritdoc}
    */
-  public function render(ContentEntityBase $revisionA, ContentEntityBase $revisionB) {
+  public function conflictResolverUI(ContentEntityBase $revisionA, ContentEntityBase $revisionB) {
     if ($this->sortedConflictResolvers === NULL) {
       $this->sortedConflictResolvers = $this->sortConflictResolvers();
     }
     foreach ($this->sortedConflictResolvers as $conflictResolver) {
       if ($conflictResolver->applies($revisionA, $revisionB)) {
-        return $conflictResolver->render($revisionA, $revisionB);
+        return $conflictResolver->conflictResolverUI($revisionA, $revisionB);
       }
     }
     // No conflict resolver UI widget was found, so just return null.

@@ -20,10 +20,10 @@ class ConflictResolverUIDefault implements ConflictResolverUIInterface {
   /**
    * {@inheritdoc}
    */
-  public function render(ContentEntityBase $revisionA, ContentEntityBase $revisionB) {
+  public function conflictResolverUI(ContentEntityBase $revisionA, ContentEntityBase $revisionB) {
     return[
       '#type' => 'item',
-      '#value' => 'Conflict resolver UI!'
+      '#markup' => 'Conflict resolver UI!'
     ];
   }
 }

@@ -10,7 +10,7 @@ use Drupal\Core\Entity\ContentEntityBase;
 interface ConflictResolverUIManagerInterface {
 
   /**
-   * Render the conflict resolver UI.
+   * Builds the conflict resolver UI.
    *
    * @param \Drupal\Core\Entity\ContentEntityBase $revisionA
    *  The first revision.
@@ -19,5 +19,5 @@ interface ConflictResolverUIManagerInterface {
    * @return array | null
    *  A render array representing the UI.
    */
-  public function render(ContentEntityBase $revisionA, ContentEntityBase $revisionB);
+  public function conflictResolverUI(ContentEntityBase $revisionA, ContentEntityBase $revisionB);
 }
