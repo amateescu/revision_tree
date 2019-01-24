@@ -2,7 +2,7 @@
 
 namespace Drupal\revision_tree\ConflictResolverUI;
 
-use Drupal\Core\Entity\ContentEntityBase;
+use Drupal\Core\Entity\RevisionableInterface;
 use Drupal\Core\Form\FormBuilderInterface;
 
 /**
@@ -28,14 +28,14 @@ class ConflictResolverUIDefault implements ConflictResolverUIInterface {
   /**
    * {@inheritdoc}
    */
-  public function applies(ContentEntityBase $revisionA, ContentEntityBase $revisionB) {
+  public function applies(RevisionableInterface $revisionA, RevisionableInterface $revisionB) {
     return TRUE;
   }
 
   /**
    * {@inheritdoc}
    */
-  public function conflictResolverUI(ContentEntityBase $revisionA, ContentEntityBase $revisionB) {
+  public function conflictResolverUI(RevisionableInterface $revisionA, RevisionableInterface $revisionB) {
     return $this->formBuilder->getForm(ManualConflictResolverForm::class, $revisionA, $revisionB);
   }
 }

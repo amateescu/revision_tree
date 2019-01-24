@@ -3,7 +3,6 @@
 namespace Drupal\revision_tree\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
-use Drupal\Core\Entity\ContentEntityBase;
 use Drupal\Core\Entity\EntityRepositoryInterface;
 use Drupal\Core\Entity\RevisionableInterface;
 use Drupal\Core\Entity\TranslatableInterface;
@@ -66,13 +65,13 @@ class ConflictsResolver extends ControllerBase {
    * Tries to automatically resolve a conflict. If not possible, it will return
    * a UI to manually resolve it.
    *
-   * @param \Drupal\Core\Entity\ContentEntityBase $revision_a
+   * @param \Drupal\Core\Entity\RevisionableInterface $revision_a
    *  The first revision
-   * @param \Drupal\Core\Entity\ContentEntityBase $revision_b
+   * @param \Drupal\Core\Entity\RevisionableInterface $revision_b
    *  The second revision.
    * @return array
    */
-  public function resolve(ContentEntityBase $revision_a, ContentEntityBase $revision_b) {
+  public function resolve(RevisionableInterface $revision_a, RevisionableInterface $revision_b) {
     $commonAncestor = $this->getLowestCommonAncestorEntity($revision_a, $revision_a->getRevisionId(), $revision_b->getRevisionId());
     // Check first if the two revisions are actually in conflict. If not, just
     // return a 404.
@@ -83,7 +82,7 @@ class ConflictsResolver extends ControllerBase {
     // Try to automatically resolve the conflict. If succeeded, then redirect
     // the user to the edit form of that entity type.
     $revision_c = $this->conflictResolver->resolveConflict($revision_a, $revision_b, $commonAncestor);
-    if (!empty($revision_c) && $revision_c instanceof ContentEntityBase) {
+    if (!empty($revision_c) && $revision_c instanceof RevisionableInterface) {
       $this->messenger()->addMessage($this->t('The conflict was automatically resolved. Bellow you have a preview of it.'));
       return new RedirectResponse($revision_c->toUrl('revision')->toString());
     }

@@ -2,7 +2,7 @@
 
 namespace Drupal\revision_tree\ConflictResolver;
 
-use Drupal\Core\Entity\ContentEntityBase;
+use Drupal\Core\Entity\RevisionableInterface;
 
 /**
  * The conflict resolver manager service.
@@ -28,7 +28,7 @@ class ConflictResolverManager implements ConflictResolverManagerInterface {
   /**
    * {@inheritdoc}
    */
-  public function checkConflict(ContentEntityBase $revisionA, ContentEntityBase $revisionB, ContentEntityBase $commonAncestor) {
+  public function checkConflict(RevisionableInterface $revisionA, RevisionableInterface $revisionB, RevisionableInterface $commonAncestor) {
     return TRUE;
   }
 
@@ -36,14 +36,14 @@ class ConflictResolverManager implements ConflictResolverManagerInterface {
   /**
    * {@inheritdoc}
    */
-  public function resolveConflict(ContentEntityBase $revisionA, ContentEntityBase $revisionB, ContentEntityBase $commonAncestor) {
+  public function resolveConflict(RevisionableInterface $revisionA, RevisionableInterface $revisionB, RevisionableInterface $commonAncestor) {
     if ($this->sortedConflictResolvers === NULL) {
       $this->sortedConflictResolvers = $this->sortConflictResolvers();
     }
     foreach ($this->sortedConflictResolvers as $conflictResolver) {
       if ($conflictResolver->applies($revisionA, $revisionB, $commonAncestor)) {
         $revision = $conflictResolver->resolveConflict($revisionA, $revisionB, $commonAncestor);
-        if (!is_null($revision) && $revision instanceof ContentEntityBase) {
+        if (!is_null($revision) && $revision instanceof RevisionableInterface) {
           return $revision;
         }
       }

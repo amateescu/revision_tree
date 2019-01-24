@@ -2,7 +2,7 @@
 
 namespace Drupal\revision_tree\ConflictResolverUI;
 
-use Drupal\Core\Entity\ContentEntityBase;
+use Drupal\Core\Entity\RevisionableInterface;
 
 /**
  * The conflict resolver manager service.
@@ -29,7 +29,7 @@ class ConflictResolverUIManager implements ConflictResolverUIManagerInterface {
   /**
    * {@inheritdoc}
    */
-  public function conflictResolverUI(ContentEntityBase $revisionA, ContentEntityBase $revisionB) {
+  public function conflictResolverUI(RevisionableInterface $revisionA, RevisionableInterface $revisionB) {
     if ($this->sortedConflictResolvers === NULL) {
       $this->sortedConflictResolvers = $this->sortConflictResolvers();
     }
