@@ -10,7 +10,7 @@ use Drupal\Core\Entity\RevisionableInterface;
 class ConflictResolverUIManager implements ConflictResolverUIManagerInterface {
 
   /**
-   * An unsorted array of arrays of conflict resolver UI widgets.
+   * An unsorted array of arrays of conflict resolver UI services.
    *
    * @var \Drupal\revision_tree\ConflictResolverUI\ConflictResolverUIInterface[][]
    */
@@ -21,24 +21,23 @@ class ConflictResolverUIManager implements ConflictResolverUIManagerInterface {
    *
    * If this is NULL a rebuild will be triggered.
    *
-   * @var null|\Drupal\revision_tree\ConflictResolverUI\ConflictResolverUIInterface[]
+   * @var \Drupal\revision_tree\ConflictResolverUI\ConflictResolverUIInterface[]|null
    */
   protected $sortedConflictResolvers = NULL;
-
 
   /**
    * {@inheritdoc}
    */
-  public function conflictResolverUI(RevisionableInterface $revisionA, RevisionableInterface $revisionB) {
+  public function conflictResolverUI(RevisionableInterface $revision_a, RevisionableInterface $revision_b) {
     if ($this->sortedConflictResolvers === NULL) {
       $this->sortedConflictResolvers = $this->sortConflictResolvers();
     }
     foreach ($this->sortedConflictResolvers as $conflictResolver) {
-      if ($conflictResolver->applies($revisionA, $revisionB)) {
-        return $conflictResolver->conflictResolverUI($revisionA, $revisionB);
+      if ($conflictResolver->applies($revision_a, $revision_b)) {
+        return $conflictResolver->conflictResolverUI($revision_a, $revision_b);
       }
     }
-    // No conflict resolver UI widget was found, so just return null.
+    // No conflict resolver UI widget was found, so just return NULL.
     return NULL;
   }
 
@@ -49,6 +48,7 @@ class ConflictResolverUIManager implements ConflictResolverUIManagerInterface {
    *   The conflict resolver to be appended.
    * @param int $priority
    *   The priority of the conflict resolver being added.
+   *
    * @return $this
    */
   public function addConflictResolverUI(ConflictResolverUIInterface $conflictResolver, $priority = 0) {
@@ -73,4 +73,5 @@ class ConflictResolverUIManager implements ConflictResolverUIManagerInterface {
     }
     return $sorted;
   }
+
 }

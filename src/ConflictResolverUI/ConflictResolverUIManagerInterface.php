@@ -12,12 +12,14 @@ interface ConflictResolverUIManagerInterface {
   /**
    * Builds the conflict resolver UI.
    *
-   * @param \Drupal\Core\Entity\RevisionableInterface $revisionA
-   *  The first revision.
-   * @param \Drupal\Core\Entity\RevisionableInterface $revisionB
-   *  The second revision.
-   * @return array | null
-   *  A render array representing the UI.
+   * @param \Drupal\Core\Entity\RevisionableInterface $revision_a
+   *   The first revision.
+   * @param \Drupal\Core\Entity\RevisionableInterface $revision_b
+   *   The second revision.
+   *
+   * @return array|null
+   *   A render array representing the UI.
    */
-  public function conflictResolverUI(RevisionableInterface $revisionA, RevisionableInterface $revisionB);
+  public function conflictResolverUI(RevisionableInterface $revision_a, RevisionableInterface $revision_b);
+
 }

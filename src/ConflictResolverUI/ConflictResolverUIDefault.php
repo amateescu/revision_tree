@@ -28,14 +28,15 @@ class ConflictResolverUIDefault implements ConflictResolverUIInterface {
   /**
    * {@inheritdoc}
    */
-  public function applies(RevisionableInterface $revisionA, RevisionableInterface $revisionB) {
+  public function applies(RevisionableInterface $revision_a, RevisionableInterface $revision_b) {
     return TRUE;
   }
 
   /**
    * {@inheritdoc}
    */
-  public function conflictResolverUI(RevisionableInterface $revisionA, RevisionableInterface $revisionB) {
-    return $this->formBuilder->getForm(ManualConflictResolverForm::class, $revisionA, $revisionB);
+  public function conflictResolverUI(RevisionableInterface $revision_a, RevisionableInterface $revision_b) {
+    return $this->formBuilder->getForm(ManualConflictResolverForm::class, $revision_a, $revision_b);
   }
+
 }

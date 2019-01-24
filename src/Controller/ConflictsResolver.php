@@ -17,7 +17,6 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
  */
 class ConflictsResolver extends ControllerBase {
 
-
   /**
    * The conflict resolver manager.
    *
@@ -41,8 +40,9 @@ class ConflictsResolver extends ControllerBase {
 
   /**
    * Constructs a ConflictsResolver object.
+   *
    * @param \Drupal\revision_tree\ConflictResolver\ConflictResolverManagerInterface $conflictResolver
-   *  The conflict resolver manager service.
+   *   The conflict resolver manager service.
    */
   public function __construct(ConflictResolverManagerInterface $conflictResolver, ConflictResolverUIManagerInterface $conflictResolverUI, EntityRepositoryInterface $entityRepository) {
     $this->conflictResolver = $conflictResolver;
@@ -66,22 +66,24 @@ class ConflictsResolver extends ControllerBase {
    * a UI to manually resolve it.
    *
    * @param \Drupal\Core\Entity\RevisionableInterface $revision_a
-   *  The first revision
+   *   The first revision
    * @param \Drupal\Core\Entity\RevisionableInterface $revision_b
-   *  The second revision.
+   *   The second revision.
+   *
    * @return array
+   *   A render array.
    */
   public function resolve(RevisionableInterface $revision_a, RevisionableInterface $revision_b) {
-    $commonAncestor = $this->getLowestCommonAncestorEntity($revision_a, $revision_a->getRevisionId(), $revision_b->getRevisionId());
+    $common_ancestor = $this->getLowestCommonAncestorEntity($revision_a, $revision_a->getRevisionId(), $revision_b->getRevisionId());
     // Check first if the two revisions are actually in conflict. If not, just
     // return a 404.
-    if (!$this->conflictResolver->checkConflict($revision_a, $revision_b, $commonAncestor)) {
+    if (!$this->conflictResolver->checkConflict($revision_a, $revision_b, $common_ancestor)) {
       throw new NotFoundHttpException();
     }
 
     // Try to automatically resolve the conflict. If succeeded, then redirect
     // the user to the edit form of that entity type.
-    $revision_c = $this->conflictResolver->resolveConflict($revision_a, $revision_b, $commonAncestor);
+    $revision_c = $this->conflictResolver->resolveConflict($revision_a, $revision_b, $common_ancestor);
     if (!empty($revision_c) && $revision_c instanceof RevisionableInterface) {
       $this->messenger()->addMessage($this->t('The conflict was automatically resolved. Bellow you have a preview of it.'));
       return new RedirectResponse($revision_c->toUrl('revision')->toString());
@@ -100,10 +102,10 @@ class ConflictsResolver extends ControllerBase {
   /**
    * Returns the lowest common ancestor entity revision of two revisions.
    */
-  protected function getLowestCommonAncestorEntity(RevisionableInterface $entity, $firstRevisionId, $secondRevisionId) {
+  protected function getLowestCommonAncestorEntity(RevisionableInterface $entity, $first_revision_id, $second_revision_id) {
     /* @var \Drupal\revision_tree\RevisionTreeHandlerInterface $revisionTreeHandler */
     $revisionTreeHandler = $this->entityTypeManager()->getHandler($entity->getEntityTypeId(), 'revision_tree');
-    $commonAncestor = $revisionTreeHandler->getLowestCommonAncestor($entity, $firstRevisionId, $secondRevisionId);
+    $commonAncestor = $revisionTreeHandler->getLowestCommonAncestor($entity, $first_revision_id, $second_revision_id);
     if (!empty($commonAncestor)) {
       $commonAncestor = $this->entityTypeManager->getStorage($entity->getEntityTypeId())->loadRevision($commonAncestor);
       if ($commonAncestor instanceof TranslatableInterface) {
@@ -113,4 +115,5 @@ class ConflictsResolver extends ControllerBase {
     }
     return NULL;
   }
+
 }

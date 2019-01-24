@@ -21,28 +21,27 @@ class ConflictResolverManager implements ConflictResolverManagerInterface {
    *
    * If this is NULL a rebuild will be triggered.
    *
-   * @var null|\Drupal\revision_tree\ConflictResolver\ConflictResolverInterface[]
+   * @var \Drupal\revision_tree\ConflictResolver\ConflictResolverInterface[]|null
    */
   protected $sortedConflictResolvers = NULL;
 
   /**
    * {@inheritdoc}
    */
-  public function checkConflict(RevisionableInterface $revisionA, RevisionableInterface $revisionB, RevisionableInterface $commonAncestor) {
+  public function checkConflict(RevisionableInterface $revision_a, RevisionableInterface $revision_b, RevisionableInterface $common_ancestor) {
     return TRUE;
   }
-
 
   /**
    * {@inheritdoc}
    */
-  public function resolveConflict(RevisionableInterface $revisionA, RevisionableInterface $revisionB, RevisionableInterface $commonAncestor) {
+  public function resolveConflict(RevisionableInterface $revision_a, RevisionableInterface $revision_b, RevisionableInterface $common_ancestor) {
     if ($this->sortedConflictResolvers === NULL) {
       $this->sortedConflictResolvers = $this->sortConflictResolvers();
     }
     foreach ($this->sortedConflictResolvers as $conflictResolver) {
-      if ($conflictResolver->applies($revisionA, $revisionB, $commonAncestor)) {
-        $revision = $conflictResolver->resolveConflict($revisionA, $revisionB, $commonAncestor);
+      if ($conflictResolver->applies($revision_a, $revision_b, $common_ancestor)) {
+        $revision = $conflictResolver->resolveConflict($revision_a, $revision_b, $common_ancestor);
         if (!is_null($revision) && $revision instanceof RevisionableInterface) {
           return $revision;
         }
@@ -84,4 +83,5 @@ class ConflictResolverManager implements ConflictResolverManagerInterface {
     }
     return $sorted;
   }
+
 }

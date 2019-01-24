@@ -50,4 +50,5 @@ class RevisionTreeEntityRevisionParamConverter extends EntityRevisionParamConver
     }
     return $entity_type_id;
   }
+
 }

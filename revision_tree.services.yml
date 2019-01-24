@@ -16,22 +16,20 @@ services:
       - { name: context_provider }
 
   revision_tree.conflict_resolver:
-    class: \Drupal\revision_tree\ConflictResolver\ConflictResolverManager
+    class: Drupal\revision_tree\ConflictResolver\ConflictResolverManager
     tags:
       - { name: service_collector, tag: conflict_resolver, call: addConflictResolver }
-
   revision_tree.conflict_resolver_default:
-    class: \Drupal\revision_tree\ConflictResolver\ConflictResolverDefault
+    class: Drupal\revision_tree\ConflictResolver\ConflictResolverDefault
     tags:
       - { name: conflict_resolver }
 
   revision_tree.conflict_resolver_ui:
-    class: \Drupal\revision_tree\ConflictResolverUI\ConflictResolverUIManager
+    class: Drupal\revision_tree\ConflictResolverUI\ConflictResolverUIManager
     tags:
-    - { name: service_collector, tag: conflict_resolver_ui, call: addConflictResolverUI }
-
+      - { name: service_collector, tag: conflict_resolver_ui, call: addConflictResolverUI }
   revision_tree.conflict_resolver_ui_default:
-    class: \Drupal\revision_tree\ConflictResolverUI\ConflictResolverUIDefault
+    class: Drupal\revision_tree\ConflictResolverUI\ConflictResolverUIDefault
     arguments: ['@form_builder']
     tags:
-    - { name: conflict_resolver_ui }
+      - { name: conflict_resolver_ui }

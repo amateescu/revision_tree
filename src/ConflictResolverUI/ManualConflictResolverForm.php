@@ -40,6 +40,7 @@ class ManualConflictResolverForm extends FormBase {
    * {@inheritdoc}
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
-    // @todo: dupplicate the selected revision?
+    // @todo Duplicate the selected revision?
   }
+
 }
