@@ -39,9 +39,7 @@ function revision_tree_entity_type_build(array &$entity_types) {
         $revision_metadata_keys['workspace'] = 'workspace';
         $entity_type->set('contextual_fields', [
           'workspace' => [
-            'field' => 'workspace',
-            'weight' => -1,
-            'neutral' => 'live',
+            'weight' => 10,
             'context' => '@revision_tree.workspace_context:hierarchy',
           ],
         ]);

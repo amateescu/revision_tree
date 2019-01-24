@@ -27,10 +27,9 @@ class WorkspaceContextProvider implements ContextProviderInterface {
    * {@inheritdoc}
    */
   public function getRuntimeContexts(array $unqualified_context_ids) {
-    return [
-      // TODO: Get actual parent workspaces.
-      'hierarchy' => new Context(new ContextDefinition(), [$this->workspaceManager->getActiveWorkspace()->id(), 'live'])
-    ];
+    // TODO: Add workspace parent field and use real workspace hierarchy.
+    $context = array_unique([$this->workspaceManager->getActiveWorkspace()->id(), 'live', NULL]);
+    return ['hierarchy' => new Context(new ContextDefinition(), $context)];
   }
 
   /**
