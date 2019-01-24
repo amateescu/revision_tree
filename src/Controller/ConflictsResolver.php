@@ -4,9 +4,13 @@ namespace Drupal\revision_tree\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Entity\ContentEntityBase;
+use Drupal\Core\Entity\EntityRepositoryInterface;
+use Drupal\Core\Entity\RevisionableInterface;
+use Drupal\Core\Entity\TranslatableInterface;
 use Drupal\revision_tree\ConflictResolver\ConflictResolverManagerInterface;
 use Drupal\revision_tree\ConflictResolverUI\ConflictResolverUIManagerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
@@ -30,13 +34,21 @@ class ConflictsResolver extends ControllerBase {
   protected $conflictResolverUI;
 
   /**
+   * The entity repository service.
+   *
+   * @var \Drupal\Core\Entity\EntityRepositoryInterface
+   */
+  protected $entityRepository;
+
+  /**
    * Constructs a ConflictsResolver object.
    * @param \Drupal\revision_tree\ConflictResolver\ConflictResolverManagerInterface $conflictResolver
    *  The conflict resolver manager service.
    */
-  public function __construct(ConflictResolverManagerInterface $conflictResolver, ConflictResolverUIManagerInterface $conflictResolverUI) {
+  public function __construct(ConflictResolverManagerInterface $conflictResolver, ConflictResolverUIManagerInterface $conflictResolverUI, EntityRepositoryInterface $entityRepository) {
     $this->conflictResolver = $conflictResolver;
     $this->conflictResolverUI = $conflictResolverUI;
+    $this->entityRepository = $entityRepository;
   }
 
   /**
@@ -45,7 +57,8 @@ class ConflictsResolver extends ControllerBase {
   public static function create(ContainerInterface $container) {
     return new static(
       $container->get('revision_tree.conflict_resolver'),
-      $container->get('revision_tree.conflict_resolver_ui')
+      $container->get('revision_tree.conflict_resolver_ui'),
+      $container->get('entity.repository')
     );
   }
 
@@ -60,21 +73,19 @@ class ConflictsResolver extends ControllerBase {
    * @return array
    */
   public function resolve(ContentEntityBase $revision_a, ContentEntityBase $revision_b) {
-    // @todo: find the LCA of revision_a and revision_b.
-    $common_ancestor = $revision_b;
+    $commonAncestor = $this->getLowestCommonAncestorEntity($revision_a, $revision_a->getRevisionId(), $revision_b->getRevisionId());
     // Check first if the two revisions are actually in conflict. If not, just
     // return a 404.
-    if (!$this->conflictResolver->checkConflict($revision_a, $revision_b, $common_ancestor)) {
+    if (!$this->conflictResolver->checkConflict($revision_a, $revision_b, $commonAncestor)) {
       throw new NotFoundHttpException();
     }
 
-    // Try to automatically resolve the conflict. If succeeded
-    $revision_c = $this->conflictResolver->resolveConflict($revision_a, $revision_b, $common_ancestor);
+    // Try to automatically resolve the conflict. If succeeded, then redirect
+    // the user to the edit form of that entity type.
+    $revision_c = $this->conflictResolver->resolveConflict($revision_a, $revision_b, $commonAncestor);
     if (!empty($revision_c) && $revision_c instanceof ContentEntityBase) {
-      return [
-        '#type' => 'item',
-        '#markup' => 'Conflict resolved: ' . $revision_c->label()
-      ];
+      $this->messenger()->addMessage($this->t('The conflict was automatically resolved. Bellow you have a preview of it.'));
+      return new RedirectResponse($revision_c->toUrl('revision')->toString());
     }
 
     // Finally, if the automatic conflict resolution didn't work, we'll just
@@ -85,5 +96,22 @@ class ConflictsResolver extends ControllerBase {
       return $ui;
     }
     throw new NotFoundHttpException();
+  }
+
+  /**
+   * Returns the lowest common ancestor entity revision of two revisions.
+   */
+  protected function getLowestCommonAncestorEntity(RevisionableInterface $entity, $firstRevisionId, $secondRevisionId) {
+    /* @var \Drupal\revision_tree\RevisionTreeHandlerInterface $revisionTreeHandler */
+    $revisionTreeHandler = $this->entityTypeManager()->getHandler($entity->getEntityTypeId(), 'revision_tree');
+    $commonAncestor = $revisionTreeHandler->getLowestCommonAncestor($entity, $firstRevisionId, $secondRevisionId);
+    if (!empty($commonAncestor)) {
+      $commonAncestor = $this->entityTypeManager->getStorage($entity->getEntityTypeId())->loadRevision($commonAncestor);
+      if ($commonAncestor instanceof TranslatableInterface) {
+        $commonAncestor = $this->entityRepository->getTranslationFromContext($commonAncestor);
+      }
+      return $commonAncestor;
+    }
+    return NULL;
   }
 }
