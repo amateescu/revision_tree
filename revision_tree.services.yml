@@ -32,5 +32,6 @@ services:
 
   revision_tree.conflict_resolver_ui_default:
     class: \Drupal\revision_tree\ConflictResolverUI\ConflictResolverUIDefault
+    arguments: ['@form_builder']
     tags:
     - { name: conflict_resolver_ui }
