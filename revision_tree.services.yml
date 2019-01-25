@@ -15,15 +15,15 @@ services:
     tags:
       - { name: context_provider }
 
-  revision_tree.conflict_resolver:
+  revision_tree.conflict_resolver_manager:
     class: Drupal\revision_tree\ConflictResolver\ConflictResolverManager
     arguments: ['@class_resolver']
     tags:
       - { name: service_id_collector, tag: conflict_resolver }
-  revision_tree.conflict_resolver_default:
-    class: Drupal\revision_tree\ConflictResolver\ConflictResolverDefault
+  revision_tree.conflict_resolver.auto_merge:
+    class: Drupal\revision_tree\ConflictResolver\AutoMergeConflictResolver
     tags:
-      - { name: conflict_resolver }
+      - { name: conflict_resolver, priority: 0 }
 
   revision_tree.conflict_resolver_ui:
     class: Drupal\revision_tree\ConflictResolverUI\ConflictResolverUIManager

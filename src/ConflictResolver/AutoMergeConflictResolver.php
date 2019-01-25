@@ -5,9 +5,9 @@ namespace Drupal\revision_tree\ConflictResolver;
 use Drupal\Core\Entity\RevisionableInterface;
 
 /**
- * A basic implementation of a conflict resolver service.
+ * A conflict resolver which tries to auto-merge the changes.
  */
-class ConflictResolverDefault implements ConflictResolverInterface {
+class AutoMergeConflictResolver implements ConflictResolverInterface {
 
   /**
    * {@inheritdoc}
@@ -20,6 +20,7 @@ class ConflictResolverDefault implements ConflictResolverInterface {
    * {@inheritdoc}
    */
   public function resolveConflict(RevisionableInterface $revision_a, RevisionableInterface $revision_b, RevisionableInterface $common_ancestor) {
+    // @todo Write an auto-merge conflict resolver strategy.
     return NULL;
   }
 
