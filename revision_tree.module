@@ -5,6 +5,7 @@
  * Provides the revision tree API.
  */
 
+use Drupal\content_moderation\Form\EntityModerationForm;
 use Drupal\Core\Entity\EntityFormInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
@@ -39,9 +40,7 @@ function revision_tree_entity_type_build(array &$entity_types) {
         $revision_metadata_keys['workspace'] = 'workspace';
         $entity_type->set('contextual_fields', [
           'workspace' => [
-            'field' => 'workspace',
-            'weight' => -1,
-            'neutral' => 'live',
+            'weight' => 10,
             'context' => '@revision_tree.workspace_context:hierarchy',
           ],
         ]);
@@ -54,7 +53,13 @@ function revision_tree_entity_type_build(array &$entity_types) {
       // Remove the workspace conflict constraint.
       $constraints = $entity_type->getConstraints();
       unset($constraints['EntityWorkspaceConflict']);
+      unset($constraints['EntityChanged']);
       $entity_type->setConstraints($constraints);
+    }
+
+    // Mark file and crop entities internal. Questionable, I know.
+    if ($entity_type->id() === 'file' || $entity_type->id() === 'crop') {
+      $entity_type->set('internal', TRUE);
     }
   }
 }
@@ -88,6 +93,22 @@ function revision_tree_entity_base_field_info(EntityTypeInterface $entity_type) 
       }
     }
 
+    if ($entity_type->id() === 'workspace') {
+      // TODO: Protect against circular dependencies.
+      $base_field_definitions['parent_workspace'] = BaseFieldDefinition::create('entity_reference')
+        ->setLabel(t('Parent workspace'))
+        ->setDescription(t('The parent workspace of this workspace.'))
+        ->setSetting('target_type', 'workspace')
+        ->setInternal(TRUE)
+        ->setTranslatable(FALSE)
+        ->setRevisionable(TRUE)
+        ->setDisplayOptions('form', [
+          'type' => 'entity_reference_autocomplete',
+          'weight' => 5,
+        ])
+        ->setDisplayConfigurable('form', TRUE);
+    }
+
     return $base_field_definitions;
   }
 }
@@ -103,8 +124,10 @@ function revision_tree_entity_revision_create(EntityInterface $new_revision, Ent
   // Set the target workspace by default.
   /** @var \Drupal\workspaces\WorkspaceManagerInterface $workspace_manager */
   if (\Drupal::moduleHandler()->moduleExists('workspaces')) {
-    $field_name = $entity->getEntityType()->getRevisionMetadataKeys(FALSE)['workspace'];
-    $new_revision->{$field_name}->target_id = \Drupal::service('workspaces.manager')->getActiveWorkspace()->id();
+    $keys = $entity->getEntityType()->getRevisionMetadataKeys(FALSE);
+    if (isset($keys['workspace'])) {
+      $new_revision->{$keys['workspace']}->target_id = \Drupal::service('workspaces.manager')->getActiveWorkspace()->id();
+    }
   }
 }
 
@@ -141,4 +164,10 @@ function revision_tree_form_alter(&$form, FormStateInterface $formState, $formId
       unset($form['#markup']);
     }
   }
+
+  // Allow to submit the entity moderation form.
+  if ($formState->getFormObject() instanceof EntityModerationForm) {
+    $formState->set('workspace_safe', TRUE);
+  }
+
 }

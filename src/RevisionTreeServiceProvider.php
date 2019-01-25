@@ -29,20 +29,12 @@ class RevisionTreeServiceProvider extends ServiceProviderBase {
       $definition->setClass(RevisionTreeEntityConverter::class);
     }
 
-   //Fixes a blacklist matching bug in the original WorkspaceManager.
-   // TODO: Move this to a patch.
-    if ($container->hasDefinition('workspaces.manager')) {
-      $definition = $container->getDefinition('workspaces.manager');
-      $definition->setClass(WorkspaceManager::class);
-    }
-
     // Replace the entity revision param converter service until
     // https://www.drupal.org/project/drupal/issues/2808163 gets into core.
     if ($container->hasDefinition('paramconverter.entity_revision')) {
       $definition = $container->getDefinition('paramconverter.entity_revision');
       $definition->setClass(RevisionTreeEntityRevisionParamConverter::class);
     }
-
   }
 
 }
