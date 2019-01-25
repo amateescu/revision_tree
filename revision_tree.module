@@ -90,6 +90,22 @@ function revision_tree_entity_base_field_info(EntityTypeInterface $entity_type) 
       }
     }
 
+    if ($entity_type->id() === 'workspace') {
+      // TODO: Protect against circular dependencies.
+      $base_field_definitions['parent_workspace'] = BaseFieldDefinition::create('entity_reference')
+        ->setLabel(t('Parent workspace'))
+        ->setDescription(t('The parent workspace of this workspace.'))
+        ->setSetting('target_type', 'workspace')
+        ->setInternal(TRUE)
+        ->setTranslatable(FALSE)
+        ->setRevisionable(TRUE)
+        ->setDisplayOptions('form', [
+          'type' => 'entity_reference_autocomplete',
+          'weight' => 5,
+        ])
+        ->setDisplayConfigurable('form', TRUE);
+    }
+
     return $base_field_definitions;
   }
 }
