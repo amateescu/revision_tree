@@ -28,7 +28,7 @@ class ConflictResolverManager implements ConflictResolverManagerInterface {
   /**
    * {@inheritdoc}
    */
-  public function checkConflict(RevisionableInterface $revision_a, RevisionableInterface $revision_b, RevisionableInterface $common_ancestor) {
+  public function checkConflict(RevisionableInterface $revision_a, RevisionableInterface $revision_b) {
     return TRUE;
   }
 
@@ -40,7 +40,7 @@ class ConflictResolverManager implements ConflictResolverManagerInterface {
       $this->sortedConflictResolvers = $this->sortConflictResolvers();
     }
     foreach ($this->sortedConflictResolvers as $conflictResolver) {
-      if ($conflictResolver->applies($revision_a, $revision_b, $common_ancestor)) {
+      if ($conflictResolver->applies($revision_a, $revision_b)) {
         $revision = $conflictResolver->resolveConflict($revision_a, $revision_b, $common_ancestor);
         if (!is_null($revision) && $revision instanceof RevisionableInterface) {
           return $revision;

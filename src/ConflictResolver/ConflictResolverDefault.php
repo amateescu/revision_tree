@@ -12,7 +12,7 @@ class ConflictResolverDefault implements ConflictResolverInterface {
   /**
    * {@inheritdoc}
    */
-  public function applies(RevisionableInterface $revision_a, RevisionableInterface $revision_b, RevisionableInterface $common_ancestor) {
+  public function applies(RevisionableInterface $revision_a, RevisionableInterface $revision_b) {
     return TRUE;
   }
 

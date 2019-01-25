@@ -77,7 +77,7 @@ class ConflictsResolver extends ControllerBase {
     $common_ancestor = $this->getLowestCommonAncestorEntity($revision_a, $revision_a->getRevisionId(), $revision_b->getRevisionId());
     // Check first if the two revisions are actually in conflict. If not, just
     // return a 404.
-    if (!$this->conflictResolver->checkConflict($revision_a, $revision_b, $common_ancestor)) {
+    if (!$this->conflictResolver->checkConflict($revision_a, $revision_b)) {
       throw new NotFoundHttpException();
     }
 

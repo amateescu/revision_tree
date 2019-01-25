@@ -16,16 +16,14 @@ interface ConflictResolverManagerInterface {
    *   The first revision.
    * @param \Drupal\Core\Entity\RevisionableInterface $revision_b
    *   The second revision.
-   * @param \Drupal\Core\Entity\RevisionableInterface $common_ancestor
-   *   The lowest common ancestor revision.
    *
    * @return bool
    *   TRUE if there is a conflict, FALSE otherwise.
    */
-  public function checkConflict(RevisionableInterface $revision_a, RevisionableInterface $revision_b, RevisionableInterface $common_ancestor);
+  public function checkConflict(RevisionableInterface $revision_a, RevisionableInterface $revision_b);
 
   /**
-   * Tries to automatically resolve a conflict.
+   * Tries to resolve a conflict between two revisions.
    *
    * @param \Drupal\Core\Entity\RevisionableInterface $revision_a
    *   The first revision.
@@ -34,9 +32,8 @@ interface ConflictResolverManagerInterface {
    * @param \Drupal\Core\Entity\RevisionableInterface $common_ancestor
    *   The lowest comment ancestor revision.
    *
-   * @return \Drupal\Core\Entity\RevisionableInterface | null
-   *   Returns a new revision if the conflict can be merged automatically, and
-   *   NULL otherwise.
+   * @return \Drupal\Core\Entity\RevisionableInterface|null
+   *   Returns a new revision if the conflict has been resolved, NULL otherwise.
    */
   public function resolveConflict(RevisionableInterface $revision_a, RevisionableInterface $revision_b, RevisionableInterface $common_ancestor);
 
