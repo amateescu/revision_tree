@@ -2,6 +2,7 @@
 
 namespace Drupal\revision_tree\EntityQuery\Sql;
 
+use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Entity\Query\Sql\Query as BaseQuery;
 
 /**
@@ -45,6 +46,27 @@ class Query extends BaseQuery {
   }
 
   /**
+   *
+   */
+  protected function buildContextFallbackExpression($field, $weight, array $values, $level = 0) {
+    if (count($values) === 0) {
+      return ['0', []];
+    }
+
+    $value = array_shift($values);
+
+    $rankedWeight = ($weight - $level * 0.01);
+    list($else, $arguments) = static::buildContextFallbackExpression($field, $weight, $values, $level + 1);
+
+    $condition = is_null($value) ? "base_table.{$field} IS NULL" : "base_table.{$field} = :{$field}__{$level}__value";
+    if (!is_null($value)) {
+      $arguments[":{$field}__{$level}__value"] = $value;
+    }
+
+    return ["IF({$condition}, {$rankedWeight}, $else)", $arguments];
+  }
+
+  /**
    * Build matching expression.
    *
    * Used to quantify the distance to the current context values.
@@ -64,43 +86,13 @@ class Query extends BaseQuery {
       [],
     ];
 
-    foreach ($this->matchingContexts as $context => $value) {
-      if (array_key_exists($context, $allContextDefinitions)) {
-        $weight = $allContextDefinitions[$context]['weight'];
-
-        $neutral = isset($allContextDefinitions[$context]['neutral']) ? $allContextDefinitions[$context]['neutral'] : null;
-
-        // If the weight is negative, we are looking for a non-match.
-        $conditionBranches = $weight > 0 ? '1, 0' : '0, 1';
-
-        $field = $context;
-        $sqlField = "$table.$context";
-
-        $neutralCondition = "{$sqlField} IS NOT NULL";
-        if ($neutral) {
-          $neutralCondition = "{$sqlField} != :{$field}__neutral AND {$sqlField} IS NOT NULL";
-        }
-
-        if (is_array($value)) {
-          foreach ($value as $index => $val) {
-            $expressions[] = [
-              "IF($neutralCondition AND {$sqlField} = :{$field}__value_{$index}, $conditionBranches) * :{$field}__weight_{$index}",
-              [
-                ":{$field}__value_{$index}" => $val,
-                ":{$field}__weight_{$index}" => $weight + (0.01 * $weight/abs($weight)),
-              ] + ($neutral ? [":{$field}__neutral" => $neutral] : []),
-            ];
-          }
-        }
-        else {
-          $expressions[] = [
-            "IF($neutralCondition AND {$sqlField} = :{$field}__value, $conditionBranches) * :{$field}__weight",
-            [
-              ":{$field}__value" => $value,
-              ":{$field}__weight" => $weight,
-            ] + ($neutral ? [":{$field}__neutral" => $neutral] : []),
-          ];
-        }
+    foreach ($this->matchingContexts as $contextField => $value) {
+      if (array_key_exists($contextField, $allContextDefinitions)) {
+        $expressions[] = $this->buildContextFallbackExpression(
+          $contextField,
+          NestedArray::getValue($allContextDefinitions, [$contextField, 'weight']) ?: 0,
+          is_array($value) ? $value : [$value]
+        );
       }
     }
 
@@ -136,24 +128,26 @@ class Query extends BaseQuery {
     /** @var \Drupal\Core\Database\Query\Select $rankedLeavesQuery */
     $rankedLeavesQuery = $this->connection->select($baseTable, 'base_table');
     $rankedLeavesQuery->fields('base_table', [$idField, $revisionField]);
-    $rankedLeavesQuery->leftJoin($baseTable, 'children', "base_table.$revisionField = children.$parentField");
-    // We consider the root as a leaf, since we might have to branch from there.
-    $rankedLeavesQuery->condition($rankedLeavesQuery->orConditionGroup()
-      ->isNull("children.$revisionField")
-      ->isNull("base_table.$parentField"));
+
+    // TODO:
+    // Temporary disabled leave detection. If a new branch is opened, it
+    // should clone the current revision instead of adding a new one. So the
+    // base branch remains a leaf that can be continued on.
+
+    // $rankedLeavesQuery->leftJoin($baseTable, 'children', "base_table.$revisionField = children.$parentField");
+    // // We consider the root as a leaf, since we might have to branch from there.
+    // $rankedLeavesQuery->condition($rankedLeavesQuery->orConditionGroup()
+    //   ->isNull("children.$revisionField")
+    //   ->isNull("base_table.$parentField"));
 
     list($expression, $arguments) = $this->buildMatchingScoreExpression('base_table');
     $rankedLeavesQuery->addExpression($expression, 'score', $arguments);
-    $rankedLeaves = $this->connection->queryTemporary(
-      (string) $rankedLeavesQuery,
-      $rankedLeavesQuery->getArguments()
-    );
 
     // Join the ranking field into the query.
-    $this->sqlQuery->join($rankedLeaves, 'l', "base_table.$revisionField = l.$revisionField");
+    $this->sqlQuery->join($rankedLeavesQuery, 'l', "base_table.$revisionField = l.$revisionField");
     // Join the ranking a second time, to find the revisions that have no higher
     // scored sibling.
-    $this->sqlQuery->leftJoin($rankedLeaves, 'r', "l.$idField = r.$idField AND l.score < r.score");
+    $this->sqlQuery->leftJoin($rankedLeavesQuery, 'r', "l.$idField = r.$idField AND (l.score < r.score OR (l.score = r.score AND l.$revisionField < r.$revisionField))");
     $this->sqlQuery->isNull("r.score");
 
     return parent::finish();

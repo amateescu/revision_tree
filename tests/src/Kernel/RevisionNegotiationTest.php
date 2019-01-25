@@ -8,22 +8,33 @@ use Drupal\Core\Plugin\Context\Context;
 use Drupal\Core\Plugin\Context\ContextDefinition;
 use Drupal\Core\Plugin\Context\ContextProviderInterface;
 use Drupal\KernelTests\Core\Entity\EntityKernelTestBase;
+use Drupal\Tests\token\Kernel\KernelTestBase;
+use Drupal\Tests\user\Traits\UserCreationTrait;
+use Drupal\Tests\workspaces\Kernel\WorkspaceTestTrait;
 use Drupal\user\Entity\User;
 use ReflectionClass;
 use Symfony\Component\DependencyInjection\Definition;
 
-class RevisionNegotiationTest extends EntityKernelTestBase {
+class RevisionNegotiationTest extends KernelTestBase {
+  use WorkspaceTestTrait;
+  use UserCreationTrait;
 
   public static $modules = [
+    'workspaces',
     'entity_test',
     'revision_tree',
     'user',
     'system',
+    'filter',
+    'text',
   ];
 
   static $mockContextProvider;
 
   static $contextDefinitions;
+
+  protected $entityManager;
+  protected $state;
 
   static function contextProviderFactory() {
     return static::$mockContextProvider->reveal();
@@ -31,6 +42,12 @@ class RevisionNegotiationTest extends EntityKernelTestBase {
 
   protected function setUp() {
     parent::setUp();
+    $this->installSchema('system', ['key_value_expire', 'sequences']);
+    $this->installEntitySchema('entity_test');
+    $this->installEntitySchema('entity_test_rev');
+    $this->installEntitySchema('user');
+
+    $this->initializeWorkspacesModule();
 
     $a = BaseFieldDefinition::create('string')
       ->setName('a')
@@ -52,16 +69,13 @@ class RevisionNegotiationTest extends EntityKernelTestBase {
       ->setRevisionable(TRUE)
       ->setProvider('entity_test_rev');
 
+    $this->state = $this->container->get('state');
     $this->state->set('entity_test_rev.additional_base_field_definitions', [
       'a' => $a,
       'b' => $b,
       'c' => $c,
       'd' => $d,
     ]);
-
-    $this->installEntitySchema('entity_test');
-    $this->installEntitySchema('entity_test_rev');
-    $this->installEntitySchema('user');
 
     $entity_type = clone \Drupal::entityTypeManager()->getDefinition('entity_test_rev');
     $entity_type->set('contextual_fields', [
@@ -72,6 +86,8 @@ class RevisionNegotiationTest extends EntityKernelTestBase {
     ]);
     \Drupal::state()->set('entity_test_rev.entity_type', $entity_type);
     \Drupal::entityDefinitionUpdateManager()->applyUpdates();
+
+    $this->entityManager = $this->container->get('entity.manager');
 
     // Setup an anonymous user for our tests.
     User::create(array(
@@ -231,64 +247,6 @@ class RevisionNegotiationTest extends EntityKernelTestBase {
     $y->save();
 
     $this->mockContexts(['a' => 'x', 'c' => 'y']);
-    $this->assertEquals($y->getLoadedRevisionId(), $repository->getActive('entity_test_rev', $x->id())->getLoadedRevisionId());
-  }
-
-  /**
-   * Every field can declare a "neutral" value that will be ignored.
-   *
-   * These value can be used as default fallback.
-   *
-   * Example: The default language or the "Live" workspace.
-   */
-  public function testNeutralContextValues() {
-    /** @var \Drupal\revision_tree\Entity\EntityRepository $repository */
-    $repository = $this->container->get('entity.repository');
-    /** @var \Drupal\Core\Entity\ContentEntityStorageInterface $storage */
-    $storage = $this->entityManager->getStorage('entity_test_rev');
-
-    /** @var \Drupal\Core\Entity\ContentEntityInterface $x */
-    $x = $storage->create();
-    $x->a = 'x';
-    $x->c = 'foo';
-    $x->save();
-
-    /** @var \Drupal\Core\Entity\ContentEntityInterface $y */
-    $y = $storage->createRevision($x);
-    $y->a = 'foo';
-    $y->c = 'neutral';
-    $y->save();
-
-    // Field c matches the neutral value which is ignored during calculation.
-    $this->mockContexts(['a' => 'x', 'c' => 'neutral']);
-    $this->assertEquals($x->getLoadedRevisionId(), $repository->getActive('entity_test_rev', $x->id())->getLoadedRevisionId());
-  }
-
-  /**
-   * A negative context weight triggers an inverse match.
-   * Non-matching revisions are ranked down instead of matching revisions up.
-   */
-  public function testNegativeMatching() {
-    /** @var \Drupal\revision_tree\Entity\EntityRepository $repository */
-    $repository = $this->container->get('entity.repository');
-    /** @var \Drupal\Core\Entity\ContentEntityStorageInterface $storage */
-    $storage = $this->entityManager->getStorage('entity_test_rev');
-
-    /** @var \Drupal\Core\Entity\ContentEntityInterface $x */
-    $x = $storage->create();
-    $x->a = 'x';
-    $x->c = 'y';
-    $x->d = 'foo';
-    $x->save();
-
-    /** @var \Drupal\Core\Entity\ContentEntityInterface $y */
-    $y = $storage->createRevision($x);
-    $y->a = 'foo';
-    $y->c = 'foo';
-    $y->d = 'z';
-    $y->save();
-
-    $this->mockContexts(['a' => 'x', 'c' => 'y', 'd' => 'z']);
     $this->assertEquals($y->getLoadedRevisionId(), $repository->getActive('entity_test_rev', $x->id())->getLoadedRevisionId());
   }
 
