@@ -2,6 +2,7 @@
 
 namespace Drupal\revision_tree\ConflictResolver;
 
+use Drupal\Core\DependencyInjection\ClassResolverInterface;
 use Drupal\Core\Entity\RevisionableInterface;
 
 /**
@@ -10,25 +11,37 @@ use Drupal\Core\Entity\RevisionableInterface;
 class ConflictResolverManager implements ConflictResolverManagerInterface {
 
   /**
-   * An unsorted array of arrays of conflict resolvers.
+   * Holds an array of conflict resolver service IDs, sorted by priority.
    *
-   * @var \Drupal\revision_tree\ConflictResolver\ConflictResolverInterface[][]
+   * @var string[]
    */
-  protected $conflictResolvers = [];
+  protected $conflictResolverIds = [];
 
   /**
-   * An array of conflict resolvers, sorted by priority.
+   * The class resolver.
    *
-   * If this is NULL a rebuild will be triggered.
-   *
-   * @var \Drupal\revision_tree\ConflictResolver\ConflictResolverInterface[]|null
+   * @var \Drupal\Core\DependencyInjection\ClassResolverInterface
    */
-  protected $sortedConflictResolvers = NULL;
+  protected $classResolver;
+
+  /**
+   * Constructs a new ConflictResolverManager.
+   *
+   * @param \Drupal\Core\DependencyInjection\ClassResolverInterface $class_resolver
+   *   The class resolver.
+   * @param string[] $conflict_resolver_ids
+   *   An array of conflict resolver service IDs.
+   */
+  public function __construct(ClassResolverInterface $class_resolver, array $conflict_resolver_ids) {
+    $this->classResolver = $class_resolver;
+    $this->conflictResolverIds = $conflict_resolver_ids;
+  }
 
   /**
    * {@inheritdoc}
    */
   public function checkConflict(RevisionableInterface $revision_a, RevisionableInterface $revision_b) {
+    // @todo Write an actual conflict checker.
     return TRUE;
   }
 
@@ -36,52 +49,18 @@ class ConflictResolverManager implements ConflictResolverManagerInterface {
    * {@inheritdoc}
    */
   public function resolveConflict(RevisionableInterface $revision_a, RevisionableInterface $revision_b, RevisionableInterface $common_ancestor) {
-    if ($this->sortedConflictResolvers === NULL) {
-      $this->sortedConflictResolvers = $this->sortConflictResolvers();
-    }
-    foreach ($this->sortedConflictResolvers as $conflictResolver) {
-      if ($conflictResolver->applies($revision_a, $revision_b)) {
-        $revision = $conflictResolver->resolveConflict($revision_a, $revision_b, $common_ancestor);
-        if (!is_null($revision) && $revision instanceof RevisionableInterface) {
+    foreach ($this->conflictResolverIds as $conflict_resolver_id) {
+      $conflict_resolver = $this->classResolver->getInstanceFromDefinition($conflict_resolver_id);
+
+      if ($conflict_resolver->applies($revision_a, $revision_b)) {
+        if ($revision = $conflict_resolver->resolveConflict($revision_a, $revision_b, $common_ancestor)) {
           return $revision;
         }
       }
     }
-    // No conflict resolver was able to automatically resolve the conflict.
+
+    // No conflict resolver was able to resolve the conflict.
     return NULL;
-  }
-
-  /**
-   * Appends a conflict resolver to the chain.
-   *
-   * @param \Drupal\revision_tree\ConflictResolver\ConflictResolverInterface $conflictResolver
-   *   The conflict resolver to be appended.
-   * @param int $priority
-   *   The priority of the conflict resolver being added.
-   *
-   * @return $this
-   */
-  public function addConflictResolver(ConflictResolverInterface $conflictResolver, $priority = 0) {
-    $this->conflictResolvers[$priority][] = $conflictResolver;
-    // Reset sorted conflict resolvers property to trigger rebuild.
-    $this->sortedConflictResolvers = NULL;
-    return $this;
-  }
-
-  /**
-   * Sorts the conflict resolvers according to priority.
-   *
-   * @return \Drupal\revision_tree\ConflictResolver\ConflictResolverInterface[]
-   *   A sorted array of conflict resolvers.
-   */
-  protected function sortConflictResolvers() {
-    $sorted = [];
-    krsort($this->conflictResolvers);
-
-    foreach ($this->conflictResolvers as $conflictResolver) {
-      $sorted = array_merge($sorted, $conflictResolver);
-    }
-    return $sorted;
   }
 
 }

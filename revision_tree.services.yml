@@ -17,8 +17,9 @@ services:
 
   revision_tree.conflict_resolver:
     class: Drupal\revision_tree\ConflictResolver\ConflictResolverManager
+    arguments: ['@class_resolver']
     tags:
-      - { name: service_collector, tag: conflict_resolver, call: addConflictResolver }
+      - { name: service_id_collector, tag: conflict_resolver }
   revision_tree.conflict_resolver_default:
     class: Drupal\revision_tree\ConflictResolver\ConflictResolverDefault
     tags:
