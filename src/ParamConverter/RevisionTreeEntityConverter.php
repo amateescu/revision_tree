@@ -20,15 +20,20 @@ class RevisionTreeEntityConverter extends EntityConverter {
    */
   protected $entityRepository;
 
-  public function __construct(
-    EntityManagerInterface $entity_manager,
-    LanguageManagerInterface $language_manager,
-    RevisionTreeEntityRepositoryInterface $entity_repository
-  ) {
+  /**
+   * Constructs a new RevisionTreeEntityConverter.
+   *
+   * @param \Drupal\Core\Entity\EntityManagerInterface $entity_manager
+   *   The entity manager.
+   * @param \Drupal\Core\Language\LanguageManagerInterface $language_manager
+   *   The language manager.
+   * @param \Drupal\revision_tree\Entity\RevisionTreeEntityRepositoryInterface $entity_repository
+   *   The entity repository.
+   */
+  public function __construct(EntityManagerInterface $entity_manager, LanguageManagerInterface $language_manager, RevisionTreeEntityRepositoryInterface $entity_repository) {
     parent::__construct($entity_manager, $language_manager);
     $this->entityRepository = $entity_repository;
   }
-
 
   /**
    * {@inheritdoc}
@@ -55,7 +60,7 @@ class RevisionTreeEntityConverter extends EntityConverter {
     // If the entity type is translatable, ensure we return the proper
     // translation object for the current context.
     if ($entity instanceof EntityInterface && $entity instanceof TranslatableInterface) {
-      $entity = $this->entityManager->getTranslationFromContext($entity, NULL, ['operation' => 'entity_upcast']);
+      $entity = $this->entityRepository->getTranslationFromContext($entity, NULL, ['operation' => 'entity_upcast']);
     }
 
     return $entity;
