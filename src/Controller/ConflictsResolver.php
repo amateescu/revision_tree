@@ -55,7 +55,7 @@ class ConflictsResolver extends ControllerBase {
    */
   public static function create(ContainerInterface $container) {
     return new static(
-      $container->get('revision_tree.conflict_resolver'),
+      $container->get('revision_tree.conflict_resolver_manager'),
       $container->get('revision_tree.conflict_resolver_ui'),
       $container->get('entity.repository')
     );
