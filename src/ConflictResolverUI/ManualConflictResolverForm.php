@@ -102,6 +102,10 @@ class ManualConflictResolverForm extends FormBase {
     $selected_revision = $storage->loadRevision($selected_revision_id);
     $new_revision = $storage->createRevision($selected_revision);
 
+    // Set the workspace to the one we are mergin TO.
+    // TODO: Move this out of the resolver form.
+    $new_revision->workspace = $storage->loadRevision($revision_b)->workspace;
+
     // When merging revision a to b, we set the revision b as parent and
     // revision a as merge parent.
     $new_revision->revision_parent->target_id = $revision_b;
