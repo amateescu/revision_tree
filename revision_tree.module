@@ -170,4 +170,14 @@ function revision_tree_form_alter(&$form, FormStateInterface $formState, $formId
     $formState->set('workspace_safe', TRUE);
   }
 
+  // Allow media-related forms to bypass the form check.
+  $allowedFormIds = [
+    'media_library_upload_form',
+    'views_form_media_library_widget',
+  ];
+
+  if (in_array($formId, $allowedFormIds)) {
+    $formState->set('workspace_safe', TRUE);
+  }
+
 }
