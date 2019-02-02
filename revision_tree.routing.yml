@@ -1,6 +1,7 @@
 revision_tree.resolve_conflicts:
   path: '/conflicts/resolve/{entity_type}/{revision_a}/{revision_b}'
   defaults:
+    _title: Resolve conflict
     _controller: '\Drupal\revision_tree\Controller\ConflictsResolver::resolve'
   options:
     parameters:
