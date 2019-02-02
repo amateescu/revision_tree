@@ -75,7 +75,7 @@ class EntityRepository extends CoreEntityRepository implements RevisionTreeEntit
     }, $contextualFields), $contexts);
 
     $query->activeRevisions(array_filter($entityContexts));
-    $query->condition($entityType->getKey('id'), $entityIds);
+    $query->condition($entityType->getKey('id'), $entityIds, 'IN');
 
     $result = $query->execute();
     return $storage->loadMultipleRevisions(array_keys($result));
