@@ -53,6 +53,12 @@ class RevisionTreeEntityConverter extends EntityConverter {
         ->getId();
       $entity = $this->entityRepository->getActive($entity_type_id, $value, ['langcode' => $langcode]);
     }
+    else if ($entity_definition->isRevisionable()) {
+      $langcode = $this->languageManager()
+        ->getCurrentLanguage(LanguageInterface::TYPE_CONTENT)
+        ->getId();
+      $entity = $this->entityRepository->getActive($entity_type_id, $value, ['langcode' => $langcode]);
+    }
     else {
       $entity = $storage->load($value);
     }
