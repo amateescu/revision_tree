@@ -29,19 +29,13 @@ class Query extends BaseQuery {
    * @param array $contexts
    *   The list of target context values keyed by field name.
    *
+   * @return \Drupal\revision_tree\EntityQuery\Sql\Query
+   *   The current query object.
    */
   public function activeRevisions(array $contexts) {
     $this->allRevisions();
     $this->activeRevisions = TRUE;
     $this->matchingContexts = $contexts;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function prepare() {
-    parent::prepare();
-    // Retrieve entity contexts from the entity type definition.
     return $this;
   }
 
@@ -105,7 +99,7 @@ class Query extends BaseQuery {
     }, $expressions), 'array_merge', []);
 
     return [$expression, $arguments];
-}
+  }
 
   /**
    * {@inheritdoc}
@@ -119,9 +113,6 @@ class Query extends BaseQuery {
     $revisionField = $this->entityType->getKey('revision');
     $baseTable = $this->entityType->getRevisionTable();
 
-    // TODO: Properly pull them out of query tables.
-    $parentField = 'revision_parent__target_id';
-
     // Create a temporary table with all leaves of the revision tree and their
     // matching score that will tell us which revision is the most appropriate
     // one.
@@ -129,16 +120,15 @@ class Query extends BaseQuery {
     $rankedLeavesQuery = $this->connection->select($baseTable, 'base_table');
     $rankedLeavesQuery->fields('base_table', [$idField, $revisionField]);
 
-    // TODO:
-    // Temporary disabled leave detection. If a new branch is opened, it
-    // should clone the current revision instead of adding a new one. So the
-    // base branch remains a leaf that can be continued on.
+    // TODO: Properly pull them out of query tables.
+    $parentField = 'revision_parent__target_id';
+    $mergeParentField = 'revision_parent__merge_target_id';
 
-    // $rankedLeavesQuery->leftJoin($baseTable, 'children', "base_table.$revisionField = children.$parentField");
-    // // We consider the root as a leaf, since we might have to branch from there.
-    // $rankedLeavesQuery->condition($rankedLeavesQuery->orConditionGroup()
-    //   ->isNull("children.$revisionField")
-    //   ->isNull("base_table.$parentField"));
+    $rankedLeavesQuery->leftJoin($baseTable, 'children', "base_table.$revisionField = children.$parentField OR base_table.$revisionField = children.$mergeParentField");
+    // We consider the root as a leaf, since we might have to branch from there.
+    $rankedLeavesQuery->condition($rankedLeavesQuery->orConditionGroup()
+      ->isNull("children.$revisionField")
+      ->isNull("base_table.$parentField"));
 
     list($expression, $arguments) = $this->buildMatchingScoreExpression('base_table');
     $rankedLeavesQuery->addExpression($expression, 'score', $arguments);
