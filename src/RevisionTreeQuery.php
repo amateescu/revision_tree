@@ -51,8 +51,10 @@ class RevisionTreeQuery implements RevisionTreeQueryInterface {
         }
         $contextCondition = new Condition('OR');
         $contextCondition->isNull($contextField);
-        $values = is_array($values) ? $values : [$values];
-        $contextCondition->condition($contextField, array_filter($values), 'IN');
+        $values = array_filter(is_array($values) ? $values : [$values]);
+        if (count($values) > 0) {
+          $contextCondition->condition($contextField, $values, 'IN');
+        }
         $pruningCondition->condition($contextCondition);
       }
       $query->condition($pruningCondition);
