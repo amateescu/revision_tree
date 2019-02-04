@@ -236,15 +236,17 @@ class RevisionNegotiationTest extends KernelTestBase {
 
     /** @var \Drupal\Core\Entity\ContentEntityInterface $x */
     $x = $storage->create();
-    $x->a = 'x';
-    $x->c = 'foo';
     $x->save();
 
-    /** @var \Drupal\Core\Entity\ContentEntityInterface $y */
+    /** @var \Drupal\Core\Entity\ContentEntityInterface $x */
     $y = $storage->createRevision($x);
-    $y->a = 'foo';
     $y->c = 'y';
     $y->save();
+
+    /** @var \Drupal\Core\Entity\ContentEntityInterface $y */
+    $z = $storage->createRevision($x);
+    $z->a = 'x';
+    $z->save();
 
     $this->mockContexts(['a' => 'x', 'c' => 'y']);
     $this->assertEquals($y->getLoadedRevisionId(), $repository->getActive('entity_test_rev', $x->id())->getLoadedRevisionId());
@@ -261,18 +263,20 @@ class RevisionNegotiationTest extends KernelTestBase {
 
     /** @var \Drupal\Core\Entity\ContentEntityInterface $x */
     $x = $storage->create();
-    $x->a = 'foo';
-    $x->c = 'z';
     $x->save();
 
-    /** @var \Drupal\Core\Entity\ContentEntityInterface $y */
+    /** @var \Drupal\Core\Entity\ContentEntityInterface $x */
     $y = $storage->createRevision($x);
-    $y->a = 'x';
-    $y->c = 'foo';
+    $y->c = 'z';
     $y->save();
 
+    /** @var \Drupal\Core\Entity\ContentEntityInterface $y */
+    $z = $storage->createRevision($x);
+    $z->a = 'x';
+    $z->save();
+
     $this->mockContexts(['a' => 'x', 'c' => ['y', 'z'] ]);
-    $this->assertEquals($x->getLoadedRevisionId(), $repository->getActive('entity_test_rev', $x->id())->getLoadedRevisionId());
+    $this->assertEquals($y->getLoadedRevisionId(), $repository->getActive('entity_test_rev', $x->id())->getLoadedRevisionId());
   }
 
   /**

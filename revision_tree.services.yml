@@ -1,5 +1,9 @@
 services:
 
+  revision_tree.query:
+    class: Drupal\revision_tree\RevisionTreeQuery
+    arguments: ['@database']
+
   revision_tree.entity.query.sql:
     decorates: entity.query.sql
     class: Drupal\revision_tree\EntityQuery\Sql\QueryFactory
