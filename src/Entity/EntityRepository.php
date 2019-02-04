@@ -55,9 +55,6 @@ class EntityRepository extends CoreEntityRepository implements RevisionTreeEntit
     $storage = $this->entityTypeManager->getStorage($entityTypeId);
     $entityType = $this->entityTypeManager->getDefinition($entityTypeId);
 
-    /** @var \Drupal\revision_tree\EntityQuery\Sql\Query $query */
-    $query = $storage->getQuery();
-
     $contextualFields = $entityType->get('contextual_fields') ?: [];
 
     $fieldContexts = array_map(function ($field) {
@@ -70,14 +67,25 @@ class EntityRepository extends CoreEntityRepository implements RevisionTreeEntit
       return $context->getContextValue();
     }, $runtimeContexts);
 
-    $entityContexts = array_merge(array_map(function ($field) use ($contextValues) {
+    $entityContexts = array_map(function ($field) use ($contextValues) {
       return $contextValues[$field['context']];
-    }, $contextualFields), $contexts);
+    }, $contextualFields);
 
-    $query->activeRevisions(array_filter($entityContexts));
+    // Apply overrides.
+    foreach ($contexts as $key => $value) {
+      if (array_key_exists($key, $fieldContexts)) {
+        $entityContexts[$key] = $value;
+      }
+    }
+
+    /** @var \Drupal\revision_tree\EntityQuery\Sql\Query $query */
+    $query = $storage->getQuery();
+    if ($entityContexts) {
+      $query->activeRevisions(array_filter($entityContexts));
+    }
     $query->condition($entityType->getKey('id'), $entityIds, 'IN');
-
     $result = $query->execute();
+
     return $storage->loadMultipleRevisions(array_keys($result));
   }
 
