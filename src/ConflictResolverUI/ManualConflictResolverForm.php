@@ -7,6 +7,7 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\RevisionableInterface;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\workspaces\WorkspaceManagerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 class ManualConflictResolverForm extends FormBase {
@@ -26,23 +27,25 @@ class ManualConflictResolverForm extends FormBase {
   protected $entityRepository;
 
   /**
-   * The system wide default workspace.
-   *
-   * @var string
+   * @var \Drupal\workspaces\WorkspaceManagerInterface
    */
-  protected $defaultWorkspace;
+  protected $workspaceManager;
 
   /**
    * Constructs a new ManualConflictResolverForm object.
    *
    * @param EntityTypeManagerInterface $entity_type_manager
    * @param EntityRepositoryInterface $entity_repository
-   * @param $defaultWorkspace
+   * @param \Drupal\workspaces\WorkspaceManagerInterface $workspaceManager
    */
-  public function __construct(EntityTypeManagerInterface $entity_type_manager, EntityRepositoryInterface $entity_repository, $defaultWorkspace) {
+  public function __construct(
+    EntityTypeManagerInterface $entity_type_manager,
+    EntityRepositoryInterface $entity_repository,
+    WorkspaceManagerInterface $workspaceManager
+  ) {
     $this->entityTypeManager = $entity_type_manager;
     $this->entityRepository = $entity_repository;
-    $this->defaultWorkspace = $defaultWorkspace;
+    $this->workspaceManager = $workspaceManager;
   }
 
   /**
@@ -52,7 +55,7 @@ class ManualConflictResolverForm extends FormBase {
     return new static(
       $container->get('entity_type.manager'),
       $container->get('entity.repository'),
-      $container->hasParameter('workspace.default') ? $container->getParameter('workspace.default') : 'live'
+      $container->get('workspaces.manager')
     );
   }
 
@@ -115,7 +118,7 @@ class ManualConflictResolverForm extends FormBase {
     // Set the workspace to the one we are mergin TO.
     // TODO: Move this out of the resolver form.
     $targetWorkspace = $storage->loadRevision($revision_b)->workspace->entity;
-    $new_revision->workspace = $targetWorkspace ? $targetWorkspace->id() : $this->defaultWorkspace;
+    $new_revision->workspace = $targetWorkspace ? $targetWorkspace->id() : $this->workspaceManager->getActiveWorkspace()->id();
 
     // When merging revision a to b, we set the revision b as parent and
     // revision a as merge parent.
