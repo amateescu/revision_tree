@@ -49,7 +49,6 @@ class Query extends BaseQuery {
     $revisionTreeQuery = \Drupal::service('revision_tree.query');
 
     $revisionField = $this->entityType->getKey('revision');
-
     $activeRevisions = $revisionTreeQuery->getActiveLeaves($this->entityType, $this->matchingContexts);
     $this->sqlQuery->innerJoin($activeRevisions, 'active', "base_table.$revisionField = active.revision_id");
     return parent::finish();

@@ -21,7 +21,6 @@ class RevisionTreeServiceProvider extends ServiceProviderBase {
     if ($container->hasDefinition('paramconverter.entity')) {
       $definition = $container->getDefinition('paramconverter.entity');
       $definition->setClass(RevisionTreeEntityConverter::class);
-      $definition->addArgument(new Reference('entity.repository'));
     }
 
     if ($container->hasDefinition('paramconverter.latest_revision')) {

@@ -3,7 +3,7 @@
 namespace Drupal\revision_tree\ParamConverter;
 
 use Drupal\Core\Entity\EntityInterface;
-use Drupal\Core\Entity\EntityManagerInterface;
+use Drupal\Core\Entity\EntityTypeManager;
 use Drupal\Core\Entity\TranslatableInterface;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Language\LanguageManagerInterface;
@@ -23,15 +23,15 @@ class RevisionTreeEntityConverter extends EntityConverter {
   /**
    * Constructs a new RevisionTreeEntityConverter.
    *
-   * @param \Drupal\Core\Entity\EntityManagerInterface $entity_manager
+   * @param \Drupal\Core\Entity\EntityTypeManager $entity_manager
    *   The entity manager.
    * @param \Drupal\Core\Language\LanguageManagerInterface $language_manager
    *   The language manager.
    * @param \Drupal\revision_tree\Entity\RevisionTreeEntityRepositoryInterface $entity_repository
    *   The entity repository.
    */
-  public function __construct(EntityManagerInterface $entity_manager, LanguageManagerInterface $language_manager, RevisionTreeEntityRepositoryInterface $entity_repository) {
-    parent::__construct($entity_manager, $language_manager);
+  public function __construct(EntityTypeManager $entity_manager, RevisionTreeEntityRepositoryInterface $entity_repository) {
+    parent::__construct($entity_manager, $entity_repository);
     $this->entityRepository = $entity_repository;
   }
 

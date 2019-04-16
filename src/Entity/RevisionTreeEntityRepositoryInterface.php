@@ -34,7 +34,7 @@ interface RevisionTreeEntityRepositoryInterface extends EntityRepositoryInterfac
    * @return \Drupal\Core\Entity\ContentEntityInterface
    *   The "active" revision of the target entity.
    */
-  public function getActive($entityTypeId, $entityId, array $contexts = []);
+  public function getActive($entityTypeId, $entityId, array $contexts = NULL);
 
   /**
    * Get the active revisions for a set of  entities.
@@ -59,6 +59,6 @@ interface RevisionTreeEntityRepositoryInterface extends EntityRepositoryInterfac
    * @return \Drupal\Core\Entity\ContentEntityInterface
    *   The "active" revision of the target entity.
    */
-  public function getActiveMultiple($entityTypeId, array $entityIds, array $contexts = []);
+  public function getActiveMultiple($entityTypeId, array $entityIds, array $contexts = NULL);
 
 }
