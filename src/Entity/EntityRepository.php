@@ -18,6 +18,10 @@ class EntityRepository extends CoreEntityRepository {
     $storage = $this->entityTypeManager->getStorage($entity_type_id);
     $entityType = $this->entityTypeManager->getDefinition($entity_type_id);
 
+    if (!$entityType->isRevisionable()) {
+      return parent::getActiveMultiple($entity_type_id, $entity_ids, $contexts);
+    }
+
     $contextualFields = $entityType->get('contextual_fields') ?: [];
 
     $fieldContexts = array_map(function ($field) {

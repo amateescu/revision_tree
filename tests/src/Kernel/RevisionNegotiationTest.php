@@ -7,15 +7,14 @@ use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\Plugin\Context\Context;
 use Drupal\Core\Plugin\Context\ContextDefinition;
 use Drupal\Core\Plugin\Context\ContextProviderInterface;
-use Drupal\KernelTests\Core\Entity\EntityKernelTestBase;
-use Drupal\Tests\token\Kernel\KernelTestBase;
+use Drupal\KernelTests\KernelTestBase;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use Drupal\Tests\workspaces\Kernel\WorkspaceTestTrait;
 use Drupal\user\Entity\User;
-use ReflectionClass;
 use Symfony\Component\DependencyInjection\Definition;
 
 class RevisionNegotiationTest extends KernelTestBase {
+
   use WorkspaceTestTrait;
   use UserCreationTrait;
 
@@ -171,7 +170,7 @@ class RevisionNegotiationTest extends KernelTestBase {
 
     // Clear the lazy context repositories static cache.
     $repository = $this->container->get('context.repository');
-    $reflection = new ReflectionClass($repository);
+    $reflection = new \ReflectionClass($repository);
     $property = $reflection->getProperty('contexts');
     $property->setAccessible(TRUE);
     $property->setValue($repository, []);
@@ -191,7 +190,7 @@ class RevisionNegotiationTest extends KernelTestBase {
 
     /** @var \Drupal\revision_tree\Entity\EntityRepository $repository */
     $repository = $this->container->get('entity.repository');
-    $this->assertNull($repository->getActive('entity_test', $entity->id(), ['foo' => 'bar']));
+    $this->assertEquals($entity->toArray(), $repository->getActive('entity_test', $entity->id(), ['foo' => 'bar'])->toArray());
   }
 
   /**

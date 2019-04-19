@@ -3,13 +3,13 @@
 namespace Drupal\Tests\revision_tree\Kernel;
 
 use Drupal\Core\Field\BaseFieldDefinition;
-use Drupal\Tests\token\Kernel\KernelTestBase;
+use Drupal\KernelTests\KernelTestBase;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use Drupal\Tests\workspaces\Kernel\WorkspaceTestTrait;
 use Drupal\user\Entity\User;
-use PDO;
 
 class RevisionTreeQueryTest extends KernelTestBase {
+
   use WorkspaceTestTrait;
   use UserCreationTrait;
 
@@ -128,7 +128,7 @@ class RevisionTreeQueryTest extends KernelTestBase {
     $y->save();
 
     $query =  $revisionTreeQuery->getContextualTree($storage->getEntityType(), []);
-    $result = $query->execute()->fetchAll(PDO::FETCH_ASSOC);
+    $result = $query->execute()->fetchAll(\PDO::FETCH_ASSOC);
     $this->assertEquals([
       ['entity_id' => '1', 'revision_id' => '1', 'score' => '0', 'parent' => null, 'merge_parent' => null],
       ['entity_id' => '1', 'revision_id' => '2', 'score' => '0', 'parent' => '1', 'merge_parent' => null],
@@ -160,7 +160,7 @@ class RevisionTreeQueryTest extends KernelTestBase {
     $query =  $revisionTreeQuery->getContextualTree($storage->getEntityType(), [
       'a' => 'x',
     ]);
-    $result = $query->execute()->fetchAll(PDO::FETCH_ASSOC);
+    $result = $query->execute()->fetchAll(\PDO::FETCH_ASSOC);
     $this->assertEquals([
       ['entity_id' => '1', 'revision_id' => '1', 'score' => '0', 'parent' => null, 'merge_parent' => null],
       ['entity_id' => '1', 'revision_id' => '2', 'score' => '1', 'parent' => '1', 'merge_parent' => null],
@@ -192,7 +192,7 @@ class RevisionTreeQueryTest extends KernelTestBase {
     $query =  $revisionTreeQuery->getContextualTree($storage->getEntityType(), [
       'a' => 'y',
     ]);
-    $result = $query->execute()->fetchAll(PDO::FETCH_ASSOC);
+    $result = $query->execute()->fetchAll(\PDO::FETCH_ASSOC);
     $this->assertEquals([
       ['entity_id' => '1', 'revision_id' => '1', 'score' => '0', 'parent' => null, 'merge_parent' => null],
     ], $result);
@@ -229,7 +229,7 @@ class RevisionTreeQueryTest extends KernelTestBase {
       'a' => ['y', 'x', NULL],
     ]);
 
-    $result = $query->execute()->fetchAll(PDO::FETCH_ASSOC);
+    $result = $query->execute()->fetchAll(\PDO::FETCH_ASSOC);
     $this->assertEquals([
       ['entity_id' => '1', 'revision_id' => '1', 'score' => '0.98', 'parent' => null, 'merge_parent' => null],
       ['entity_id' => '1', 'revision_id' => '2', 'score' => '0.99', 'parent' => '1', 'merge_parent' => null],
@@ -268,7 +268,7 @@ class RevisionTreeQueryTest extends KernelTestBase {
     $z->save();
 
     $query =  $revisionTreeQuery->getContextualLeaves($storage->getEntityType(), []);
-    $result = $query->execute()->fetchAll(PDO::FETCH_ASSOC);
+    $result = $query->execute()->fetchAll(\PDO::FETCH_ASSOC);
     $this->assertEquals([
       ['entity_id' => '1', 'revision_id' => '3', 'score' => '0', 'parent' => '1', 'merge_parent' => null],
       ['entity_id' => '1', 'revision_id' => '4', 'score' => '0', 'parent' => '2', 'merge_parent' => null],
@@ -306,7 +306,7 @@ class RevisionTreeQueryTest extends KernelTestBase {
     $z->save();
 
     $query =  $revisionTreeQuery->getContextualLeaves($storage->getEntityType(), ['a' => ['y']]);
-    $result = $query->execute()->fetchAll(PDO::FETCH_ASSOC);
+    $result = $query->execute()->fetchAll(\PDO::FETCH_ASSOC);
     $this->assertEquals([
       ['entity_id' => '1', 'revision_id' => '3', 'score' => '1', 'parent' => '1', 'merge_parent' => null],
     ], $result);
@@ -344,7 +344,7 @@ class RevisionTreeQueryTest extends KernelTestBase {
     $z->save();
 
     $query =  $revisionTreeQuery->getContextualLeaves($storage->getEntityType(), ['a' => ['y', 'x', null]]);
-    $result = $query->execute()->fetchAll(PDO::FETCH_ASSOC);
+    $result = $query->execute()->fetchAll(\PDO::FETCH_ASSOC);
     $this->assertEquals([
       ['entity_id' => '1', 'revision_id' => '3', 'score' => '1', 'parent' => '1', 'merge_parent' => null],
       ['entity_id' => '1', 'revision_id' => '4', 'score' => '0.99', 'parent' => '2', 'merge_parent' => null],
@@ -383,7 +383,7 @@ class RevisionTreeQueryTest extends KernelTestBase {
     $z->save();
 
     $query =  $revisionTreeQuery->getContextualLeaves($storage->getEntityType(), ['a' => ['foo']]);
-    $result = $query->execute()->fetchAll(PDO::FETCH_ASSOC);
+    $result = $query->execute()->fetchAll(\PDO::FETCH_ASSOC);
     $this->assertEquals([
       ['entity_id' => '1', 'revision_id' => '1', 'score' => '0', 'parent' => null, 'merge_parent' => null],
     ], $result);
@@ -421,7 +421,7 @@ class RevisionTreeQueryTest extends KernelTestBase {
     $z->save();
 
     $query =  $revisionTreeQuery->getActiveLeaves($storage->getEntityType(), []);
-    $result = $query->execute()->fetchAll(PDO::FETCH_ASSOC);
+    $result = $query->execute()->fetchAll(\PDO::FETCH_ASSOC);
     $this->assertEquals([
       ['entity_id' => '1', 'revision_id' => '4'],
     ], $result);
@@ -459,7 +459,7 @@ class RevisionTreeQueryTest extends KernelTestBase {
     $z->save();
 
     $query =  $revisionTreeQuery->getActiveLeaves($storage->getEntityType(), ['a' => 'y']);
-    $result = $query->execute()->fetchAll(PDO::FETCH_ASSOC);
+    $result = $query->execute()->fetchAll(\PDO::FETCH_ASSOC);
     $this->assertEquals([
       ['entity_id' => '1', 'revision_id' => '3'],
     ], $result);
@@ -497,7 +497,7 @@ class RevisionTreeQueryTest extends KernelTestBase {
     $z->save();
 
     $query =  $revisionTreeQuery->getActiveLeaves($storage->getEntityType(), ['a' => 'foo']);
-    $result = $query->execute()->fetchAll(PDO::FETCH_ASSOC);
+    $result = $query->execute()->fetchAll(\PDO::FETCH_ASSOC);
     $this->assertEquals([
       ['entity_id' => '1', 'revision_id' => '1'],
     ], $result);
