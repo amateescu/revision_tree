@@ -4,6 +4,8 @@ namespace Drupal\Tests\revision_tree\Kernel\RevisionTree;
 
 use Drupal\entity_test\Entity\EntityTestRev;
 use Drupal\Tests\field\Kernel\FieldKernelTestBase;
+use Drupal\Tests\workspaces\Kernel\WorkspaceTestTrait;
+use Drupal\Tests\user\Traits\UserCreationTrait;
 
 /**
  * Tests the revision_tree field type.
@@ -12,19 +14,23 @@ use Drupal\Tests\field\Kernel\FieldKernelTestBase;
  * @group revision_tree
  */
 class RevisionTreeItemTest extends FieldKernelTestBase {
+  use WorkspaceTestTrait;
+  use UserCreationTrait;
 
   /**
    * Modules to enable.
    *
    * @var array
    */
-  public static $modules = ['revision_tree'];
+  public static $modules = ['revision_tree', 'workspaces', 'user', 'system'];
 
   /**
    * {@inheritdoc}
    */
   protected function setUp() {
     parent::setUp();
+
+    $this->initializeWorkspacesModule();
 
     $this->installEntitySchema('entity_test_rev');
   }

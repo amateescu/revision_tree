@@ -29,14 +29,13 @@ class EntityRepository extends CoreEntityRepository implements RevisionTreeEntit
     LanguageManagerInterface $language_manager,
     ContextRepositoryInterface $contextRepository
   ) {
-    parent::__construct($entity_type_manager, $language_manager);
-    $this->contextRepository = $contextRepository;
+    parent::__construct($entity_type_manager, $language_manager, $contextRepository);
   }
 
   /**
    * {@inheritdoc}
    */
-  public function getActive($entityTypeId, $entityId, array $contexts = []) {
+  public function getActive($entityTypeId, $entityId, array $contexts = NULL) {
     $entityType = $this->entityTypeManager->getDefinition($entityTypeId);
     if ($entityType->isRevisionable()) {
       $result = $this->getActiveMultiple($entityTypeId, [$entityId], $contexts);
@@ -50,7 +49,7 @@ class EntityRepository extends CoreEntityRepository implements RevisionTreeEntit
   /**
    * {@inheritdoc}
    */
-  public function getActiveMultiple($entityTypeId, array $entityIds, array $contexts = []) {
+  public function getActiveMultiple($entityTypeId, array $entityIds, array $contexts = NULL) {
     /** @var \Drupal\Core\Entity\ContentEntityStorageInterface $storage */
     $storage = $this->entityTypeManager->getStorage($entityTypeId);
     $entityType = $this->entityTypeManager->getDefinition($entityTypeId);
@@ -72,20 +71,22 @@ class EntityRepository extends CoreEntityRepository implements RevisionTreeEntit
     }, $contextualFields);
 
     // Apply overrides.
-    foreach ($contexts as $key => $value) {
-      if (array_key_exists($key, $fieldContexts)) {
-        $entityContexts[$key] = $value;
+    if ($contexts) {
+      foreach ($contexts as $key => $value) {
+        if (array_key_exists($key, $fieldContexts)) {
+          $entityContexts[$key] = $value;
+        }
       }
     }
-
     /** @var \Drupal\revision_tree\EntityQuery\Sql\Query $query */
     $query = $storage->getQuery();
+
     if ($entityContexts) {
       $query->activeRevisions(array_filter($entityContexts));
     }
+
     $query->condition($entityType->getKey('id'), $entityIds, 'IN');
     $result = $query->execute();
-
     return $storage->loadMultipleRevisions(array_keys($result));
   }
 

@@ -69,7 +69,7 @@ class RevisionTreeQueryTest extends KernelTestBase {
       'd' => ['weight' => -10, 'context' => '@test_context:d'],
     ]);
     \Drupal::state()->set('entity_test_rev.entity_type', $entity_type);
-    \Drupal::entityDefinitionUpdateManager()->applyUpdates();
+    $this->applyUpdate();
 
     $this->entityManager = $this->container->get('entity.manager');
 
@@ -82,6 +82,27 @@ class RevisionTreeQueryTest extends KernelTestBase {
     $this->installConfig(['system']);
 
     $this->container->get('entity_type.bundle.info')->clearCachedBundles();
+  }
+
+  /**
+   * Apply update function restore.
+   */
+  protected function applyUpdate() {
+    $complete_change_list = \Drupal::entityDefinitionUpdateManager()->getChangeList();
+    if ($complete_change_list) {
+      // self::getChangeList() only disables the cache and does not invalidate.
+      // In case there are changes, explicitly invalidate caches.
+      \Drupal::entityTypeManager()->clearCachedDefinitions();
+    }
+    foreach ($complete_change_list as $entity_type_id => $change_list) {
+      $entity_type = \Drupal::entityTypeManager()->getDefinition($entity_type_id);
+
+      // Process field storage definition changes.
+      if (!empty($change_list['field_storage_definitions'])) {
+        $storage_definitions = \Drupal::service('entity_field.manager')->getFieldStorageDefinitions($entity_type_id);
+        \Drupal::entityDefinitionUpdateManager()->updateFieldableEntityType($entity_type, $storage_definitions);
+      }
+    }
   }
 
   /**

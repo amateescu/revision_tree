@@ -49,6 +49,7 @@ class RevisionTreeQuery implements RevisionTreeQueryInterface {
         if (!array_key_exists($contextField, $contextualFields)) {
           continue;
         }
+
         $contextCondition = new Condition('OR');
         $contextCondition->isNull($contextField);
         $values = array_filter(is_array($values) ? $values : [$values]);
@@ -57,7 +58,9 @@ class RevisionTreeQuery implements RevisionTreeQueryInterface {
         }
         $pruningCondition->condition($contextCondition);
       }
-      $query->condition($pruningCondition);
+      if ($pruningCondition->count()) {
+        $query->condition($pruningCondition);
+      }
     }
 
     list($expression, $arguments)= $this->buildMatchingScoreExpression($entityType, $contexts);
