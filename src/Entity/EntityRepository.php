@@ -3,56 +3,20 @@
 namespace Drupal\revision_tree\Entity;
 
 use Drupal\Core\Entity\EntityRepository as CoreEntityRepository;
-use Drupal\Core\Entity\EntityTypeManagerInterface;
-use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\Core\Plugin\Context\ContextInterface;
-use Drupal\Core\Plugin\Context\ContextRepositoryInterface;
 
 /**
  * Forked version of the entity repository to implement revision negotiation.
  */
-class EntityRepository extends CoreEntityRepository implements RevisionTreeEntityRepositoryInterface {
-
-  /**
-   * @var \Drupal\Core\Plugin\Context\ContextRepositoryInterface
-   */
-  protected $contextRepository;
-
-  /**
-   * {@inheritdoc}
-   *
-   * @param \Drupal\Core\Plugin\Context\ContextRepositoryInterface $contextRepository
-   *   A context repository to resolve context values with.
-   */
-  public function __construct(
-    EntityTypeManagerInterface $entity_type_manager,
-    LanguageManagerInterface $language_manager,
-    ContextRepositoryInterface $contextRepository
-  ) {
-    parent::__construct($entity_type_manager, $language_manager, $contextRepository);
-  }
+class EntityRepository extends CoreEntityRepository {
 
   /**
    * {@inheritdoc}
    */
-  public function getActive($entityTypeId, $entityId, array $contexts = NULL) {
-    $entityType = $this->entityTypeManager->getDefinition($entityTypeId);
-    if ($entityType->isRevisionable()) {
-      $result = $this->getActiveMultiple($entityTypeId, [$entityId], $contexts);
-      if ($result) {
-        return reset($result);
-      }
-    }
-    return null;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function getActiveMultiple($entityTypeId, array $entityIds, array $contexts = NULL) {
+  public function getActiveMultiple($entity_type_id, array $entity_ids, array $contexts = NULL) {
     /** @var \Drupal\Core\Entity\ContentEntityStorageInterface $storage */
-    $storage = $this->entityTypeManager->getStorage($entityTypeId);
-    $entityType = $this->entityTypeManager->getDefinition($entityTypeId);
+    $storage = $this->entityTypeManager->getStorage($entity_type_id);
+    $entityType = $this->entityTypeManager->getDefinition($entity_type_id);
 
     $contextualFields = $entityType->get('contextual_fields') ?: [];
 
@@ -85,7 +49,7 @@ class EntityRepository extends CoreEntityRepository implements RevisionTreeEntit
       $query->activeRevisions(array_filter($entityContexts));
     }
 
-    $query->condition($entityType->getKey('id'), $entityIds, 'IN');
+    $query->condition($entityType->getKey('id'), $entity_ids, 'IN');
     $result = $query->execute();
     return $storage->loadMultipleRevisions(array_keys($result));
   }
