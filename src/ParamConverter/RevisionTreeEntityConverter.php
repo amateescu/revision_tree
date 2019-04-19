@@ -3,12 +3,9 @@
 namespace Drupal\revision_tree\ParamConverter;
 
 use Drupal\Core\Entity\EntityInterface;
-use Drupal\Core\Entity\EntityTypeManager;
 use Drupal\Core\Entity\TranslatableInterface;
 use Drupal\Core\Language\LanguageInterface;
-use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\Core\ParamConverter\EntityConverter;
-use Drupal\revision_tree\Entity\RevisionTreeEntityRepositoryInterface;
 
 /**
  * Overridden EntityConverter that tries to pull active revisions.
@@ -16,32 +13,12 @@ use Drupal\revision_tree\Entity\RevisionTreeEntityRepositoryInterface;
 class RevisionTreeEntityConverter extends EntityConverter {
 
   /**
-   * @var \Drupal\Core\Entity\EntityRepositoryInterface
-   */
-  protected $entityRepository;
-
-  /**
-   * Constructs a new RevisionTreeEntityConverter.
-   *
-   * @param \Drupal\Core\Entity\EntityTypeManager $entity_manager
-   *   The entity manager.
-   * @param \Drupal\Core\Language\LanguageManagerInterface $language_manager
-   *   The language manager.
-   * @param \Drupal\revision_tree\Entity\RevisionTreeEntityRepositoryInterface $entity_repository
-   *   The entity repository.
-   */
-  public function __construct(EntityTypeManager $entity_manager, RevisionTreeEntityRepositoryInterface $entity_repository) {
-    parent::__construct($entity_manager, $entity_repository);
-    $this->entityRepository = $entity_repository;
-  }
-
-  /**
    * {@inheritdoc}
    */
   public function convert($value, $definition, $name, array $defaults) {
     $entity_type_id = $this->getEntityTypeFromDefaults($definition, $name, $defaults);
-    $storage = $this->entityManager->getStorage($entity_type_id);
-    $entity_definition = $this->entityManager->getDefinition($entity_type_id);
+    $storage = $this->entityTypeManager->getStorage($entity_type_id);
+    $entity_definition = $this->entityTypeManager->getDefinition($entity_type_id);
 
 
     // If the entity type is revisionable and the parameter has the

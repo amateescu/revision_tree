@@ -6,7 +6,6 @@ use Drupal\Core\DependencyInjection\ContainerBuilder;
 use Drupal\Core\DependencyInjection\ServiceProviderBase;
 use Drupal\revision_tree\Entity\EntityRepository;
 use Drupal\revision_tree\ParamConverter\RevisionTreeEntityConverter;
-use Drupal\revision_tree\ParamConverter\RevisionTreeEntityRevisionParamConverter;
 use Symfony\Component\DependencyInjection\Reference;
 
 class RevisionTreeServiceProvider extends ServiceProviderBase {
@@ -26,13 +25,6 @@ class RevisionTreeServiceProvider extends ServiceProviderBase {
     if ($container->hasDefinition('paramconverter.latest_revision')) {
       $definition = $container->getDefinition('paramconverter.latest_revision');
       $definition->setClass(RevisionTreeEntityConverter::class);
-    }
-
-    // Replace the entity revision param converter service until
-    // https://www.drupal.org/project/drupal/issues/2808163 gets into core.
-    if ($container->hasDefinition('paramconverter.entity_revision')) {
-      $definition = $container->getDefinition('paramconverter.entity_revision');
-      $definition->setClass(RevisionTreeEntityRevisionParamConverter::class);
     }
   }
 
