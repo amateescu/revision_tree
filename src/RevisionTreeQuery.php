@@ -33,7 +33,12 @@ class RevisionTreeQuery implements RevisionTreeQueryInterface {
    * {@inheritdoc}
    */
   public function getContextualTree(ContentEntityTypeInterface $entityType, array $contexts) {
-    $contextualFields = $entityType->get('contextual_fields') ?: [];
+    $contextualFields = [
+      'workspace' => [
+        'weight' => 10,
+        'context' => '@revision_tree.workspace_context:hierarchy',
+      ],
+    ];
 
     $parentField = $entityType->getRevisionMetadataKey('revision_parent');
     $query = $this->database->select($entityType->getRevisionTable(), 'base');
@@ -147,7 +152,12 @@ class RevisionTreeQuery implements RevisionTreeQueryInterface {
    *   Tuple of the SQL expression and the arguments array.
    */
   protected function buildMatchingScoreExpression(ContentEntityTypeInterface $entityType, array $contexts) {
-    $allContextDefinitions = $entityType->get('contextual_fields') ?: [];
+    $allContextDefinitions = [
+      'workspace' => [
+        'weight' => 10,
+        'context' => '@revision_tree.workspace_context:hierarchy',
+      ],
+    ];
 
     // The default expression just returns '0'.
     $expressions[] = [
