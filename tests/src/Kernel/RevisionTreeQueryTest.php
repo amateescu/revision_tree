@@ -8,6 +8,9 @@ use Drupal\Tests\user\Traits\UserCreationTrait;
 use Drupal\Tests\workspaces\Kernel\WorkspaceTestTrait;
 use Drupal\user\Entity\User;
 
+/**
+ * @group revision_tree
+ */
 class RevisionTreeQueryTest extends KernelTestBase {
 
   use WorkspaceTestTrait;

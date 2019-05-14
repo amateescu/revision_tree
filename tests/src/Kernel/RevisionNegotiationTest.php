@@ -13,6 +13,9 @@ use Drupal\Tests\workspaces\Kernel\WorkspaceTestTrait;
 use Drupal\user\Entity\User;
 use Symfony\Component\DependencyInjection\Definition;
 
+/**
+ * @group revision_tree
+ */
 class RevisionNegotiationTest extends KernelTestBase {
 
   use WorkspaceTestTrait;
