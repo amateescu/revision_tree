@@ -40,12 +40,13 @@ class RevisionTreeQuery implements RevisionTreeQueryInterface {
       ],
     ];
 
-    $parentField = $entityType->getRevisionMetadataKey('revision_parent');
+    $parent_field = $entityType->getRevisionMetadataKey('revision_parent');
+    $merge_parent_field = $entityType->getRevisionMetadataKey('revision_merge_parent');
     $query = $this->database->select($entityType->getRevisionTable(), 'base');
     $query->addField('base', $entityType->getKey('id'), 'entity_id');
     $query->addField('base', $entityType->getKey('revision'), 'revision_id');
-    $query->addField('base', $parentField . '__target_id', 'parent');
-    $query->addField('base', $parentField . '__merge_target_id', 'merge_parent');
+    $query->addField('base', $parent_field, 'parent');
+    $query->addField('base', $merge_parent_field, 'merge_parent');
 
     if ($contexts) {
       $pruningCondition = new Condition('AND');

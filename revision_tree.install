@@ -13,7 +13,7 @@ function revision_tree_module_preinstall($module) {
     return;
   }
 
-  // Clear plugin manager caches so the new 'revision_tree' field type is
+  // Clear plugin manager caches so the new 'revision_reference' field type is
   // available below.
   \Drupal::getContainer()->get('plugin.cache_clearer')->clearCachedDefinitions();
 
@@ -25,6 +25,8 @@ function revision_tree_module_preinstall($module) {
       $revision_metadata_keys = $entity_type->get('revision_metadata_keys');
       if (!isset($revision_metadata_keys['revision_parent'])) {
         $revision_metadata_keys['revision_parent'] = 'revision_parent';
+        $revision_metadata_keys['revision_merge_parent'] = 'revision_merge_parent';
+
         if ($workspace_manager->isEntityTypeSupported($entity_type)) {
           $revision_metadata_keys['workspace'] = 'workspace';
         }
