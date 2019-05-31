@@ -48,6 +48,7 @@ class ValidRevisionParentConstraintValidator extends ConstraintValidator impleme
 
     /** @var \Drupal\Core\Entity\RevisionableStorageInterface $storage */
     $storage = $this->entityTypeManager->getStorage($entity->getEntityTypeId());
+    $revision_tree = $this->entityTypeManager->getHandler($entity->getEntityTypeId(), 'revision_tree');
     $revision_parent_field_name = $entity->getEntityType()->getRevisionMetadataKeys(FALSE)['revision_parent'];
     $revision_merge_parent_field_name = $entity->getEntityType()->getRevisionMetadataKeys(FALSE)['revision_merge_parent'];
 
@@ -64,8 +65,8 @@ class ValidRevisionParentConstraintValidator extends ConstraintValidator impleme
       }
     }
 
-    $parent_revision_id = $entity->getParentRevisionId();
-    $revision_merge_parent_id = $entity->getMergeParentRevisionId();
+    $parent_revision_id = $revision_tree->getParentRevisionId($entity);
+    $revision_merge_parent_id = $revision_tree->getMergeParentRevisionId($entity);
     $parent_revision_ids = array_filter([$parent_revision_id, $revision_merge_parent_id]);
     if ($parent_revision_ids) {
       // Second, check that the revision parents are not the same.
