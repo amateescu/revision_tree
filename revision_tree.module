@@ -35,6 +35,7 @@ function revision_tree_entity_type_build(array &$entity_types) {
       // Add the required revision metadata key.
       $revision_metadata_keys = $entity_type->get('revision_metadata_keys');
       $revision_metadata_keys['revision_parent'] = 'revision_parent';
+      $revision_metadata_keys['revision_merge_parent'] = 'revision_merge_parent';
 
       if (\Drupal::hasService('workspaces.manager') && \Drupal::service('workspaces.manager')->isEntityTypeSupported($entity_type)) {
         $revision_metadata_keys['workspace'] = 'workspace';
@@ -55,6 +56,9 @@ function revision_tree_entity_type_build(array &$entity_types) {
       unset($constraints['EntityWorkspaceConflict']);
       unset($constraints['EntityChanged']);
       $entity_type->setConstraints($constraints);
+
+      // Add the 'ValidRevisionParent' constraint.
+      $entity_type->addConstraint('ValidRevisionParent', []);
     }
 
     // Mark file and crop entities internal. Questionable, I know.
@@ -69,14 +73,23 @@ function revision_tree_entity_type_build(array &$entity_types) {
  */
 function revision_tree_entity_base_field_info(EntityTypeInterface $entity_type) {
   // Add the 'revision_parent' field.
+  /** @var \Drupal\Core\Entity\ContentEntityType $entity_type */
   if ($entity_type->isRevisionable()) {
-    $field_name = $entity_type->getRevisionMetadataKeys(FALSE)['revision_parent'];
-    $base_field_definitions[$field_name] = BaseFieldDefinition::create('revision_tree')
-      ->setLabel(t('Revision parent'))
-      ->setDescription(t('Indicates the parent revision ID.'))
-      ->setInternal(TRUE)
-      ->setTranslatable(FALSE)
-      ->setRevisionable(TRUE);
+      $field_name = $entity_type->getRevisionMetadataKeys(FALSE)['revision_parent'];
+      $base_field_definitions[$field_name] = BaseFieldDefinition::create('revision_reference')
+        ->setLabel(t('Revision parent'))
+        ->setDescription(t('Indicates the parent revision ID.'))
+        ->setInternal(TRUE)
+        ->setTranslatable(FALSE)
+        ->setRevisionable(TRUE);
+
+      $field_name = $entity_type->getRevisionMetadataKeys(FALSE)['revision_merge_parent'];
+      $base_field_definitions[$field_name] = BaseFieldDefinition::create('revision_reference')
+        ->setLabel(t('Revision merge parent'))
+        ->setDescription(t('Indicates the merge parent revision ID.'))
+        ->setInternal(TRUE)
+        ->setTranslatable(FALSE)
+        ->setRevisionable(TRUE);
 
     if (\Drupal::hasService('workspaces.manager')) {
       /** @var \Drupal\workspaces\WorkspaceManagerInterface $workspace_manager */
@@ -118,8 +131,10 @@ function revision_tree_entity_base_field_info(EntityTypeInterface $entity_type) 
  */
 function revision_tree_entity_revision_create(EntityInterface $new_revision, EntityInterface $entity, $keep_untranslatable_fields) {
   // Set the parent revision by default.
-  $field_name = $entity->getEntityType()->getRevisionMetadataKeys(FALSE)['revision_parent'];
-  $new_revision->{$field_name}->target_id = $entity->getLoadedRevisionId();
+  /** @var \Drupal\Core\Entity\RevisionableStorageInterface $storage */
+  $storage = \Drupal::entityTypeManager()->getStorage($entity->getEntityTypeId());
+  $revision_tree = \Drupal::entityTypeManager()->getHandler($entity->getEntityTypeId(), 'revision_tree');
+  $revision_tree->setParentRevisionId($new_revision, $storage->getLatestRevisionId($entity->id()));
 
   // Set the target workspace by default.
   /** @var \Drupal\workspaces\WorkspaceManagerInterface $workspace_manager */
