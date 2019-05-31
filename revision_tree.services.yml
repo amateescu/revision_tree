@@ -1,5 +1,4 @@
 services:
-
   revision_tree.query:
     class: Drupal\revision_tree\RevisionTreeQuery
     arguments: ['@database']
@@ -18,23 +17,3 @@ services:
     arguments: ['@workspaces.manager']
     tags:
       - { name: context_provider }
-
-  revision_tree.conflict_resolver_manager:
-    class: Drupal\revision_tree\ConflictResolver\ConflictResolverManager
-    arguments: ['@class_resolver', []]
-    tags:
-      - { name: service_id_collector, tag: conflict_resolver }
-  revision_tree.conflict_resolver.auto_merge:
-    class: Drupal\revision_tree\ConflictResolver\AutoMergeConflictResolver
-    tags:
-      - { name: conflict_resolver, priority: 0 }
-
-  revision_tree.conflict_resolver_ui:
-    class: Drupal\revision_tree\ConflictResolverUI\ConflictResolverUIManager
-    tags:
-      - { name: service_collector, tag: conflict_resolver_ui, call: addConflictResolverUI }
-  revision_tree.conflict_resolver_ui_default:
-    class: Drupal\revision_tree\ConflictResolverUI\ConflictResolverUIDefault
-    arguments: ['@form_builder']
-    tags:
-      - { name: conflict_resolver_ui }
