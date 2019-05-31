@@ -5,16 +5,15 @@ namespace Drupal\revision_tree\Plugin\Validation\Constraint;
 use Symfony\Component\Validator\Constraint;
 
 /**
- * Revision tree valid reference constraint.
- *
- * Verifies that referenced revisions are valid for the revision tree.
+ * Verifies that referenced revisions parents are valid.
  *
  * @Constraint(
- *   id = "ValidRevisionTreeReference",
- *   label = @Translation("Valid parent revision reference", context = "Validation")
+ *   id = "ValidRevisionParent",
+ *   label = @Translation("Valid revision parent", context = "Validation"),
+ *   type = { "entity" },
  * )
  */
-class ValidRevisionTreeReferenceConstraint extends Constraint {
+class ValidRevisionParentConstraint extends Constraint {
 
   /**
    * Violation message when the referenced revisions does not exist.
@@ -28,13 +27,13 @@ class ValidRevisionTreeReferenceConstraint extends Constraint {
    *
    * @var string
    */
-  public $readOnlyMessage = 'The parent revision can not be changed for an existing revision.';
+  public $readOnlyMessage = 'The revision parents can not be changed for an existing revision.';
 
   /**
    * Violation message when the parent and the merge revision are the same.
    *
    * @var string
    */
-  public $sameRevisionMessage = 'The parent revision can not be the same as the merge revision.';
+  public $sameRevisionMessage = 'The revision parents can not be the same.';
 
 }
