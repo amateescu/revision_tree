@@ -1,0 +1,9 @@
+entity.workspace.associations_form:
+  path: '/admin/config/workflow/workspaces/manage/{workspace}/associations'
+  defaults:
+    _entity_form: 'workspace.associations'
+    _title: 'Rebuild associations'
+  options:
+    _admin_route: TRUE
+  requirements:
+    _permission: 'administer workspaces'
