@@ -5,25 +5,10 @@
  * Provides the revision tree API.
  */
 
-use Drupal\content_moderation\Form\EntityModerationForm;
-use Drupal\Core\Entity\EntityFormInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Field\BaseFieldDefinition;
-use Drupal\Core\Form\FormStateInterface;
 use Drupal\revision_tree\SqlRevisionTreeHandler;
-
-/**
- * Implements hook_module_implements_alter().
- */
-function revision_tree_module_implements_alter(&$implementations, $hook) {
-  // Make sure that our hooks run after the ones from the workspaces module.
-  if (in_array($hook, ['form_alter', 'entity_type_build'])) {
-    $group = $implementations['revision_tree'];
-    unset($implementations['revision_tree']);
-    $implementations['revision_tree'] = $group;
-  }
-}
 
 /**
  * Implements hook_entity_type_build().
@@ -37,33 +22,12 @@ function revision_tree_entity_type_build(array &$entity_types) {
       $revision_metadata_keys['revision_parent'] = 'revision_parent';
       $revision_metadata_keys['revision_merge_parent'] = 'revision_merge_parent';
 
-      if (\Drupal::hasService('workspaces.manager') && \Drupal::service('workspaces.manager')->isEntityTypeSupported($entity_type)) {
-        $revision_metadata_keys['workspace'] = 'workspace';
-        $entity_type->set('contextual_fields', [
-          'workspace' => [
-            'weight' => 10,
-            'context' => '@revision_tree.workspace_context:hierarchy',
-          ],
-        ]);
-      }
-
       $entity_type->set('revision_metadata_keys', $revision_metadata_keys);
 
       $entity_type->setHandlerClass('revision_tree', SqlRevisionTreeHandler::class);
 
-      // Remove the workspace conflict constraint.
-      $constraints = $entity_type->getConstraints();
-      unset($constraints['EntityWorkspaceConflict']);
-      unset($constraints['EntityChanged']);
-      $entity_type->setConstraints($constraints);
-
       // Add the 'ValidRevisionParent' constraint.
       $entity_type->addConstraint('ValidRevisionParent', []);
-    }
-
-    // Mark file and crop entities internal. Questionable, I know.
-    if ($entity_type->id() === 'file' || $entity_type->id() === 'crop') {
-      $entity_type->set('internal', TRUE);
     }
   }
 }
@@ -72,7 +36,7 @@ function revision_tree_entity_type_build(array &$entity_types) {
  * Implements hook_entity_base_field_info().
  */
 function revision_tree_entity_base_field_info(EntityTypeInterface $entity_type) {
-  // Add the 'revision_parent' field.
+  // Add the 'revision_parent' and 'revision_merge_parent' fields.
   /** @var \Drupal\Core\Entity\ContentEntityType $entity_type */
   if ($entity_type->isRevisionable()) {
       $field_name = $entity_type->getRevisionMetadataKeys(FALSE)['revision_parent'];
@@ -91,58 +55,7 @@ function revision_tree_entity_base_field_info(EntityTypeInterface $entity_type) 
         ->setTranslatable(FALSE)
         ->setRevisionable(TRUE);
 
-    if (\Drupal::hasService('workspaces.manager')) {
-      /** @var \Drupal\workspaces\WorkspaceManagerInterface $workspace_manager */
-      $workspace_manager = \Drupal::service('workspaces.manager');
-      if ($workspace_manager->isEntityTypeSupported($entity_type)) {
-        $field_name = $entity_type->getRevisionMetadataKeys(FALSE)['workspace'];
-        $base_field_definitions[$field_name] = BaseFieldDefinition::create('entity_reference')
-          ->setLabel(t('Workspace'))
-          ->setDescription(t('Indicates the workspace that this revision belongs to.'))
-          ->setSetting('target_type', 'workspace')
-          ->setInternal(TRUE)
-          ->setTranslatable(FALSE)
-          ->setRevisionable(TRUE);
-      }
-    }
-
-    if ($entity_type->id() === 'workspace') {
-      // TODO: Protect against circular dependencies.
-      $base_field_definitions['parent_workspace'] = BaseFieldDefinition::create('entity_reference')
-        ->setLabel(t('Parent workspace'))
-        ->setDescription(t('The parent workspace of this workspace.'))
-        ->setSetting('target_type', 'workspace')
-        ->setInternal(TRUE)
-        ->setTranslatable(FALSE)
-        ->setRevisionable(TRUE)
-        ->setDisplayOptions('form', [
-          'type' => 'entity_reference_autocomplete',
-          'weight' => 5,
-        ])
-        ->setDisplayConfigurable('form', TRUE);
-    }
-
     return $base_field_definitions;
-  }
-}
-
-/**
- * Implements hook_entity_revision_create().
- */
-function revision_tree_entity_revision_create(EntityInterface $new_revision, EntityInterface $entity, $keep_untranslatable_fields) {
-  // Set the parent revision by default.
-  /** @var \Drupal\Core\Entity\RevisionableStorageInterface $storage */
-  $storage = \Drupal::entityTypeManager()->getStorage($entity->getEntityTypeId());
-  $revision_tree = \Drupal::entityTypeManager()->getHandler($entity->getEntityTypeId(), 'revision_tree');
-  $revision_tree->setParentRevisionId($new_revision, $storage->getLatestRevisionId($entity->id()));
-
-  // Set the target workspace by default.
-  /** @var \Drupal\workspaces\WorkspaceManagerInterface $workspace_manager */
-  if (\Drupal::moduleHandler()->moduleExists('workspaces')) {
-    $keys = $entity->getEntityType()->getRevisionMetadataKeys(FALSE);
-    if (isset($keys['workspace'])) {
-      $new_revision->{$keys['workspace']}->target_id = \Drupal::service('workspaces.manager')->getActiveWorkspace()->id();
-    }
   }
 }
 
@@ -150,56 +63,14 @@ function revision_tree_entity_revision_create(EntityInterface $new_revision, Ent
  * Implements hook_entity_presave().
  */
 function revision_tree_entity_presave(EntityInterface $entity) {
+  $entity_type_manager = \Drupal::entityTypeManager();
   // Set the parent revision by default.
   // @todo This doesn't allow setting a parent revision manually.
-  /** @var \Drupal\Core\Entity\RevisionableStorageInterface $storage */
-  $storage = \Drupal::entityTypeManager()->getStorage($entity->getEntityTypeId());
-  $revision_tree = \Drupal::entityTypeManager()->getHandler($entity->getEntityTypeId(), 'revision_tree');
-  $revision_tree->setParentRevisionId($entity, $storage->getLatestRevisionId($entity->id()));
+  if ($entity_type_manager->hasHandler($entity->getEntityTypeId(), 'revision_tree')) {
+    /** @var \Drupal\Core\Entity\RevisionableStorageInterface $storage */
+    $storage = $entity_type_manager->getStorage($entity->getEntityTypeId());
 
-  if (!\Drupal::hasService('workspaces.manager')) {
-    return;
+    $revision_tree = $entity_type_manager->getHandler($entity->getEntityTypeId(), 'revision_tree');
+    $revision_tree->setParentRevisionId($entity, $storage->getLatestRevisionId($entity->id()));
   }
-
-  /** @var \Drupal\workspaces\WorkspaceManagerInterface $workspace_manager */
-  $workspace_manager = \Drupal::service('workspaces.manager');
-
-  // Only run if this is not an entity type provided by the Workspaces module
-  // and we are in a non-default workspace
-  $entity_type = $entity->getEntityType();
-  if ($entity_type->getProvider() === 'workspaces' || $workspace_manager->getActiveWorkspace()->isDefaultWorkspace()) {
-    return;
-  }
-
-  if ($workspace_manager->isEntityTypeSupported($entity->getEntityType()) && !$entity->isDefaultRevision()) {
-    $field_name = $entity_type->getRevisionMetadataKeys(FALSE)['workspace'];
-    $entity->{$field_name}->target_id = $workspace_manager->getActiveWorkspace()->id();
-  }
-}
-
-function revision_tree_form_alter(&$form, FormStateInterface $formState, $formId) {
-  if ($formState->getFormObject() instanceof EntityFormInterface) {
-    // Hack detection if the form has been disabled by workspaces.
-    // TODO: Patch it properly into workspaces.
-    if (isset($form['#access']) && $form['#access'] === FALSE && isset($form['#markup'])) {
-      unset($form['#access']);
-      unset($form['#markup']);
-    }
-  }
-
-  // Allow to submit the entity moderation form.
-  if ($formState->getFormObject() instanceof EntityModerationForm) {
-    $formState->set('workspace_safe', TRUE);
-  }
-
-  // Allow media-related forms to bypass the form check.
-  $allowedFormIds = [
-    'media_library_upload_form',
-    'views_form_media_library_widget',
-  ];
-
-  if (in_array($formId, $allowedFormIds)) {
-    $formState->set('workspace_safe', TRUE);
-  }
-
 }

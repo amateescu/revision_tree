@@ -17,19 +17,16 @@ function revision_tree_module_preinstall($module) {
   // available below.
   \Drupal::getContainer()->get('plugin.cache_clearer')->clearCachedDefinitions();
 
-  /** @var \Drupal\workspaces\WorkspaceManagerInterface $workspace_manager */
-  $workspace_manager = \Drupal::service('workspaces.manager');
   $entity_definition_update_manager = \Drupal::entityDefinitionUpdateManager();
   foreach ($entity_definition_update_manager->getEntityTypes() as $entity_type) {
+    // @todo Set the metadata keys only on a hardcoded list of entity types,
+    //   instead of all revisionable ones.
     if ($entity_type->isRevisionable()) {
       $revision_metadata_keys = $entity_type->get('revision_metadata_keys');
       if (!isset($revision_metadata_keys['revision_parent'])) {
         $revision_metadata_keys['revision_parent'] = 'revision_parent';
         $revision_metadata_keys['revision_merge_parent'] = 'revision_merge_parent';
 
-        if ($workspace_manager->isEntityTypeSupported($entity_type)) {
-          $revision_metadata_keys['workspace'] = 'workspace';
-        }
         $entity_type->set('revision_metadata_keys', $revision_metadata_keys);
         $entity_definition_update_manager->updateEntityType($entity_type);
       }

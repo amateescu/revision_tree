@@ -4,6 +4,3 @@ description: 'Collaboration Sandbox for revision tree implementations.'
 version: VERSION
 core: 8.x
 package: Core (Experimental)
-
-dependencies:
-- drupal:workspaces
