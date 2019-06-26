@@ -150,6 +150,13 @@ function revision_tree_entity_revision_create(EntityInterface $new_revision, Ent
  * Implements hook_entity_presave().
  */
 function revision_tree_entity_presave(EntityInterface $entity) {
+  // Set the parent revision by default.
+  // @todo This doesn't allow setting a parent revision manually.
+  /** @var \Drupal\Core\Entity\RevisionableStorageInterface $storage */
+  $storage = \Drupal::entityTypeManager()->getStorage($entity->getEntityTypeId());
+  $revision_tree = \Drupal::entityTypeManager()->getHandler($entity->getEntityTypeId(), 'revision_tree');
+  $revision_tree->setParentRevisionId($entity, $storage->getLatestRevisionId($entity->id()));
+
   if (!\Drupal::hasService('workspaces.manager')) {
     return;
   }
