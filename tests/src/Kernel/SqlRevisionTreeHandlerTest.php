@@ -20,7 +20,7 @@ class SqlRevisionTreeHandlerTest extends EntityKernelTestBase {
    *
    * @var array
    */
-  public static $modules = ['revision_tree', 'workspaces'];
+  public static $modules = ['revision_tree'];
 
   /**
    * The storage of the test entity type.

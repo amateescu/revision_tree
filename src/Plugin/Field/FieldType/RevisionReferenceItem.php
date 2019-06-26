@@ -20,6 +20,16 @@ use Drupal\Core\TypedData\DataReferenceTargetDefinition;
 class RevisionReferenceItem extends FieldItemBase {
 
   /**
+   * Tracks whether the field's value has changed since it was initially loaded.
+   *
+   * @todo This shouldn't be needed when https://www.drupal.org/node/2862574 is
+   *   fixed in core.
+   *
+   * @var bool
+   */
+  protected $isDirty = FALSE;
+
+  /**
    * {@inheritdoc}
    */
   public static function propertyDefinitions(FieldStorageDefinitionInterface $field_definition) {
@@ -65,6 +75,37 @@ class RevisionReferenceItem extends FieldItemBase {
     ];
 
     return $schema;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function onChange($property_name, $notify = TRUE) {
+    // When the parent revision ID is assigned manually, we have to skip the
+    // auto-assign code from ::preSave().
+    if ($property_name === 'target_revision_id') {
+      $this->isDirty = TRUE;
+    }
+    parent::onChange($property_name, $notify);
+  }
+
+  /**
+   * Determines whether the value of this field has changed since it was loaded.
+   *
+   * @return bool
+   *   TRUE is the value has changed, FALSE otherwise.
+   */
+  public function isDirty() {
+    return $this->isDirty;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function __clone() {
+    $this->isDirty = FALSE;
+
+    parent::__clone();
   }
 
 }

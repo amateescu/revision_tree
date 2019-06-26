@@ -64,12 +64,17 @@ function revision_tree_entity_base_field_info(EntityTypeInterface $entity_type) 
  */
 function revision_tree_entity_presave(EntityInterface $entity) {
   $entity_type_manager = \Drupal::entityTypeManager();
-  // Set the parent revision by default.
-  // @todo This doesn't allow setting a parent revision manually.
-  if ($entity_type_manager->hasHandler($entity->getEntityTypeId(), 'revision_tree')) {
+  // Set the parent revision by default, except in the case where one was set
+  // manually.
+  if (!$entity->isNew() && $entity_type_manager->hasHandler($entity->getEntityTypeId(), 'revision_tree')) {
+    $field_items = $entity->get($entity->getEntityType()->getRevisionMetadataKeys(FALSE)['revision_parent']);
+
+    if (!$field_items->isEmpty() && $field_items->get(0)->isDirty()) {
+      return;
+    }
+
     /** @var \Drupal\Core\Entity\RevisionableStorageInterface $storage */
     $storage = $entity_type_manager->getStorage($entity->getEntityTypeId());
-
     $revision_tree = $entity_type_manager->getHandler($entity->getEntityTypeId(), 'revision_tree');
     $revision_tree->setParentRevisionId($entity, $storage->getLatestRevisionId($entity->id()));
   }
