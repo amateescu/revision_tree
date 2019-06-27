@@ -197,34 +197,40 @@ class RevisionTreeWorkspaceAssociation extends WorkspaceAssociation implements R
         $clone_query->condition('target_entity_id', $entity_ids, 'IN');
       }
 
-      // Execute the query and effectively clone the index entries.
-      $this->database
-        ->insert('workspace_association')
-        ->from($clone_query)
-        ->execute();
-
-
-      // Get an update query that results in a set of revisions that are custom
-      // to the current workspace.
-      $result = $this->buildOverridesQuery($entity_type, $workspace_id, $parent_workspace->id())->execute();
-
-      // Manually insert all these entries.
-      // Since this only happens for sub-workspaces the number of singular
-      // inserts shouldn't be too bad in this case. For extreme cases where a
-      // Workspace maintains a lot of overrides, this might be optimized into
-      // a more efficient REPLACE INTO ... operation with an implementation
-      // specific to the database system in use.
-      while ($row = $result->fetch(\PDO::FETCH_ASSOC)) {
-        $this->database->merge('workspace_association')
-          ->fields([
-            'target_entity_revision_id' => $row['target_entity_revision_id'],
-          ])
-          ->keys([
-            'workspace' => $row['workspace'],
-            'target_entity_type_id' => $row['target_entity_type_id'],
-            'target_entity_id' => $row['target_entity_id'],
-          ])
+      $transaction = $this->database->startTransaction();
+      try {
+        // Execute the query and effectively clone the index entries.
+        $this->database
+          ->insert('workspace_association')
+          ->from($clone_query)
           ->execute();
+
+
+        // Get an update query that results in a set of revisions that are custom
+        // to the current workspace.
+        $result = $this->buildOverridesQuery($entity_type, $workspace_id, $parent_workspace->id())->execute();
+
+        // Manually insert all these entries.
+        // Since this only happens for sub-workspaces the number of singular
+        // inserts shouldn't be too bad in this case. For extreme cases where a
+        // Workspace maintains a lot of overrides, this might be optimized into
+        // a more efficient REPLACE INTO ... operation with an implementation
+        // specific to the database system in use.
+        while ($row = $result->fetch(\PDO::FETCH_ASSOC)) {
+          $this->database->merge('workspace_association')
+            ->fields([
+              'target_entity_revision_id' => $row['target_entity_revision_id'],
+            ])
+            ->keys([
+              'workspace' => $row['workspace'],
+              'target_entity_type_id' => $row['target_entity_type_id'],
+              'target_entity_id' => $row['target_entity_id'],
+            ])
+            ->execute();
+        }
+      } catch (\Exception $e) {
+        $transaction->rollBack();
+        watchdog_exception('workspaces-index-rebuild', $e);
       }
     }
     else {
