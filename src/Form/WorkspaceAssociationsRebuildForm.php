@@ -161,7 +161,7 @@ class WorkspaceAssociationsRebuildForm extends ContentEntityForm implements Work
 
     foreach ($this->entityTypeManager->getDefinitions() as $entityType) {
       if ($this->workspaceManager->isEntityTypeSupported($entityType)) {
-        foreach ($workspace_ids as $workspace_id) {
+        foreach (array_reverse($workspace_ids) as $workspace_id) {
           $batch['operations'][] = [[$this, 'batchProcess'], [$entityType->id(), $workspace_id]];
         }
       }
