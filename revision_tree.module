@@ -9,7 +9,6 @@ use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\revision_tree\Form\WorkspaceAssociationsRebuildForm;
-use Drupal\revision_tree\RevisionTreeWorkspaceListBuilder;
 use Drupal\revision_tree\SqlRevisionTreeHandler;
 
 /**
@@ -18,7 +17,6 @@ use Drupal\revision_tree\SqlRevisionTreeHandler;
 function revision_tree_entity_type_build(array &$entity_types) {
   /** @var $entity_types \Drupal\Core\Entity\EntityTypeInterface[] */
   $entity_types['workspace']->setFormClass('associations', WorkspaceAssociationsRebuildForm::class);
-  $entity_types['workspace']->setHandlerClass('list_builder', RevisionTreeWorkspaceListBuilder::class);
   $entity_types['workspace']->setLinkTemplate('associations-form', '/admin/config/workflow/workspaces/manage/{workspace}/associations');
 
   foreach ($entity_types as $entity_type) {
@@ -84,4 +82,21 @@ function revision_tree_entity_presave(EntityInterface $entity) {
     $revision_tree = $entity_type_manager->getHandler($entity->getEntityTypeId(), 'revision_tree');
     $revision_tree->setParentRevisionId($entity, $storage->getLatestRevisionId($entity->id()));
   }
+}
+
+/**
+ * Implements hook_entity_operation().
+ */
+function revision_tree_entity_operation(\Drupal\Core\Entity\EntityInterface $entity) {
+  $operations = [];
+
+  /** @var \Drupal\workspaces\WorkspaceInterface $entity */
+  if ($entity->getEntityTypeId() === 'workspace' && !$entity->isDefaultWorkspace()) {
+    $operations['associations'] = [
+      'title' => t('Rebuild associations'),
+      'url' => $entity->toUrl('associations-form', ['query' => ['destination' => $entity->toUrl('collection')->toString()]]),
+    ];
+  }
+
+  return $operations;
 }

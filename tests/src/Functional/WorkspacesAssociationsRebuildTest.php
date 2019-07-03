@@ -11,6 +11,7 @@ use Drupal\workspaces\Entity\Workspace;
  * Tests workspace re-indexing functionality.
  *
  * @group workspaces
+ * @group revision_tree
  */
 class WorkspacesAssociationsRebuildTest extends BrowserTestBase {
 
