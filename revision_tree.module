@@ -8,6 +8,8 @@
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Field\BaseFieldDefinition;
+use Drupal\revision_tree\Form\WorkspaceAssociationsRebuildForm;
+use Drupal\revision_tree\RevisionTreeWorkspaceListBuilder;
 use Drupal\revision_tree\SqlRevisionTreeHandler;
 
 /**
@@ -15,6 +17,10 @@ use Drupal\revision_tree\SqlRevisionTreeHandler;
  */
 function revision_tree_entity_type_build(array &$entity_types) {
   /** @var $entity_types \Drupal\Core\Entity\EntityTypeInterface[] */
+  $entity_types['workspace']->setFormClass('associations', WorkspaceAssociationsRebuildForm::class);
+  $entity_types['workspace']->setHandlerClass('list_builder', RevisionTreeWorkspaceListBuilder::class);
+  $entity_types['workspace']->setLinkTemplate('associations-form', '/admin/config/workflow/workspaces/manage/{workspace}/associations');
+
   foreach ($entity_types as $entity_type) {
     if ($entity_type->isRevisionable()) {
       // Add the required revision metadata key.

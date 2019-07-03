@@ -20,7 +20,7 @@ class SqlRevisionTreeHandlerTest extends EntityKernelTestBase {
    *
    * @var array
    */
-  public static $modules = ['revision_tree'];
+  public static $modules = ['revision_tree', 'workspaces'];
 
   /**
    * The storage of the test entity type.
@@ -90,7 +90,7 @@ class SqlRevisionTreeHandlerTest extends EntityKernelTestBase {
     // proper revision parent ID, which is the active revision of the branch.
     $revision_4 = $this->storage->createRevision($revision_2, FALSE);
     $revision_4->save();
-    $this->assertEquals($revision_3->getRevisionId(), $this->revisionTree->getParentRevisionId($revision_4));
+    $this->assertEquals($revision_2->getRevisionId(), $this->revisionTree->getParentRevisionId($revision_4));
     $this->assertEmpty($this->revisionTree->getMergeParentRevisionId($revision_4));
 
     // Check that we can assign the parent revision IDs manually.
